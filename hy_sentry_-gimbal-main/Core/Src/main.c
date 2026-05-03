@@ -43,7 +43,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define HAL_ETH_LEGACY_MODULE_ENABLED
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
