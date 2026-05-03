@@ -62,7 +62,7 @@ int8_t flash_write_single_address(uint32_t start_address, uint32_t *buf, uint32_
     while (uw_address <= end_address)
     {
 
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,uw_address, *data_buf) == HAL_OK)
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD,uw_address, *data_buf) == HAL_OK)
         {
             uw_address += 4;
             data_buf++;
@@ -112,7 +112,7 @@ int8_t flash_write_muli_address(uint32_t start_address, uint32_t end_address, ui
     data_len = 0;
     while (uw_address <= end_address)
     {
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,uw_address, *data_buf) == HAL_OK)
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD,uw_address, *data_buf) == HAL_OK)
         {
             uw_address += 4;
             data_buf++;
