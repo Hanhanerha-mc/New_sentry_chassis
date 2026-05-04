@@ -11,20 +11,21 @@ cmake_minimum_required(VERSION 3.22)
 file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/SEGGER/*.c"
         "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/ARM/*.c"
+        "${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Source/Templates/*.c"
         "${CMAKE_SOURCE_DIR}/bsp/*.c"
         "${CMAKE_SOURCE_DIR}/modules/*.c"
         "${CMAKE_SOURCE_DIR}/application/*.c"
-        "${CMAKE_SOURCE_DIR}/USB_DEVICE/*.c"
+
 )
 
 # Add include paths
 file(GLOB_RECURSE USER_HEADERS CONFIGURE_DEPENDS
         "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/SEGGER/*.h"
         "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/ARM/*.h"
+        "${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include/*.h"
         "${CMAKE_SOURCE_DIR}/bsp/*.h"
         "${CMAKE_SOURCE_DIR}/modules/*.h"
         "${CMAKE_SOURCE_DIR}/application/*.h"
-        "${CMAKE_SOURCE_DIR}/USB_DEVICE/*.h"
 )
 
 set(USER_INCLUDE_DIRS "")
@@ -83,16 +84,19 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+    ARM_MATH_CM7
     # Add user defined symbols
 )
 
 # Remove wrong libob.a library dependency when using cpp files
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 
+set(CMSIS_DSP_LIB "${CMAKE_SOURCE_DIR}/Drivers/CMSIS/DSP/Lib/GCC/libarm_cortexM7lfdp_math.a")
+
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-
+    ${CMSIS_DSP_LIB}
     # Add user defined libraries
 )
 
