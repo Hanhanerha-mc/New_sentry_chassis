@@ -40,9 +40,10 @@ void RobotInit()
     __disable_irq();
     
     BSPInit();
+    // 初始化IMU（DM-IMU版本）
     imu_init(0x01,0x11,&hfdcan3);
 #if defined(ONE_BOARD) || defined(GIMBAL_BOARD)
-    RobotCMDInit();
+    RobotCMDInit();             // 一些通信的结构体的初始化，还有双板通信的初始化
     GimbalInit();
     ShootInit();
 #endif

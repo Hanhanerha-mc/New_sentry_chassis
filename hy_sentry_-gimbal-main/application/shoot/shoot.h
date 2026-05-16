@@ -9,9 +9,9 @@
  */
 typedef struct 
 {
-    DJIMotorInstance *friction_l;
-    DJIMotorInstance *friction_r;
-    DJIMotorInstance *loader;
+    DJIMotorInstance *friction_l;       // 摩擦轮左
+    DJIMotorInstance *friction_r;       // 摩擦轮右
+    DJIMotorInstance *loader;           // 拨弹轮
     int stall_flag;
 
 } ShootInstance;

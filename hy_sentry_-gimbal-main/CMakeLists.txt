@@ -10,7 +10,6 @@ cmake_minimum_required(VERSION 3.22)
 # Add sources to executable
 file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/SEGGER/*.c"
-        "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/ARM/*.c"
         "${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Source/Templates/*.c"
         "${CMAKE_SOURCE_DIR}/bsp/*.c"
         "${CMAKE_SOURCE_DIR}/modules/*.c"
@@ -21,7 +20,6 @@ file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS
 # Add include paths
 file(GLOB_RECURSE USER_HEADERS CONFIGURE_DEPENDS
         "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/SEGGER/*.h"
-        "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/ARM/*.h"
         "${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include/*.h"
         "${CMAKE_SOURCE_DIR}/bsp/*.h"
         "${CMAKE_SOURCE_DIR}/modules/*.h"

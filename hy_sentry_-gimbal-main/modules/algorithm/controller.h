@@ -28,15 +28,15 @@
 // PID 优化环节使能标志位,通过位与可以判断启用的优化环节;也可以改成位域的形式
 typedef enum
 {
-    PID_IMPROVE_NONE = 0b00000000,                // 0000 0000
-    PID_Integral_Limit = 0b00000001,              // 0000 0001
-    PID_Derivative_On_Measurement = 0b00000010,   // 0000 0010
-    PID_Trapezoid_Intergral = 0b00000100,         // 0000 0100
-    PID_Proportional_On_Measurement = 0b00001000, // 0000 1000
-    PID_OutputFilter = 0b00010000,                // 0001 0000
-    PID_ChangingIntegrationRate = 0b00100000,     // 0010 0000
-    PID_DerivativeFilter = 0b01000000,            // 0100 0000
-    PID_ErrorHandle = 0b10000000,                 // 1000 0000
+    PID_IMPROVE_NONE = 0b00000000,                // 0000 0000 无优化环节
+    PID_Integral_Limit = 0b00000001,              // 0000 0001 积分限幅
+    PID_Derivative_On_Measurement = 0b00000010,   // 0000 0010 微分先行
+    PID_Trapezoid_Intergral = 0b00000100,         // 0000 0100 梯形积分
+    PID_Proportional_On_Measurement = 0b00001000, // 0000 1000 比例反馈
+    PID_OutputFilter = 0b00010000,                // 0001 0000 输出滤波器
+    PID_ChangingIntegrationRate = 0b00100000,     // 0010 0000 变速积分系数
+    PID_DerivativeFilter = 0b01000000,            // 0100 0000 微分滤波器系数
+    PID_ErrorHandle = 0b10000000,                 // 1000 0000 错误处理标志位
 } PID_Improvement_e;
 
 /* PID 报错类型枚举*/
@@ -73,22 +73,22 @@ typedef struct
 
     //-----------------------------------
     // for calculating
-    float Measure;
-    float Last_Measure;
+    float Measure;           // 当前测量值
+    float Last_Measure;      // 上一次测量值
     float Err;
-    float Last_Err;
-    float Last_ITerm;
+    float Last_Err;          // 上一次误差值
+    float Last_ITerm;        // 上一次积分项值
 
-    float Pout;
+    float Pout;              // 比例项输出
     float Iout;
     float Dout;
-    float ITerm;
+    float ITerm;             // 积分项值
 
-    float Output;
-    float Last_Output;
-    float Last_Dout;
+    float Output;            // PID输出
+    float Last_Output;       // 上一次输出值
+    float Last_Dout;         // 上一次微分项输出
 
-    float Ref;
+    float Ref;  
 
     uint32_t DWT_CNT;
     float dt;

@@ -79,9 +79,9 @@ static void InitQuaternion(float *init_q4)
         init_q4[i + 1] = axis_rot[i] * sinf(angle / 2.0f); // 轴角公式,第三轴为0(没有z轴分量)
 }
 
-attitude_t *INS_ptr(void)
+attitude_T *INS_ptr(void)
 {
-    return (attitude_t *)&INS.Gyro;
+    return (attitude_T *)&INS.Gyro;
 }
 
 float *INS_Q(void){
@@ -112,27 +112,28 @@ float INS_Yaw(void){
     return INS.Yaw;
 }
 
-attitude_t *INS_Init(void)
+attitude_T *INS_Init(void)
 {
     if (!INS.init)
         INS.init = 1;
     else
-        return (attitude_t *)&INS.Gyro;
+        return (attitude_T *)&INS.Gyro;
 
     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
 
     while (BMI088Init(&hspi2, 1) != BMI088_NO_ERROR)
         ;
+    // IMU参数初始化,用于修正安装误差,本demo暂时没用？
     IMU_Param.scale[X] = 1;
     IMU_Param.scale[Y] = 1;
     IMU_Param.scale[Z] = 1;
     IMU_Param.Yaw = 0;
     IMU_Param.Pitch = 90.0f;
     IMU_Param.Roll = 0;
-    IMU_Param.flag = 1;
+    IMU_Param.flag = 1;         //flag?
 
     float init_quaternion[4] = {0};
-    InitQuaternion(init_quaternion);
+    InitQuaternion(init_quaternion);        // 初始化四元数
     IMU_QuaternionEKF_Init(init_quaternion, 10, 0.001, 1000000, 1, 0);
     // imu heat init
     PID_Init_Config_s config = {.MaxOut = 1,
@@ -147,7 +148,8 @@ attitude_t *INS_Init(void)
     // noise of accel is relatively big and of high freq,thus lpf is used
     INS.AccelLPF = 0.0085;
     DWT_GetDeltaT(&INS_DWT_Count);
-    return (attitude_t *)&INS.Gyro; // @todo: 这里偷懒了,不要这样做! 修改INT_t结构体可能会导致异常,待修复.
+    // TODO 这里偷懒了,不要这样做! 修改INT_t结构体可能会导致异常,待修复.
+    return (attitude_T *)&INS.Gyro; // @todo: 这里偷懒了,不要这样做! 修改INT_t结构体可能会导致异常,待修复.
 }
 
 /* 注意以1kHz的频率运行此任务 */

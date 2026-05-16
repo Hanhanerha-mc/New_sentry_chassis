@@ -374,24 +374,26 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 	}
 }
 
+// TODO 当前代码需要修复，IMU错误部分已被删除
 uint8_t rx_data1[8] = {0};
 void fdcan1_rx_callback(void)
 {
 	fdcanx_receive(&hfdcan1, rx_data1);
-	IMU_UpdateData(rx_data1);
+	// -/ IMU修复删除代码
+	// -/ IMU_UpdateData(rx_data1);
 }
 uint8_t rx_data2[8] = {0};
 void fdcan2_rx_callback(void)
 {
 	fdcanx_receive(&hfdcan2, rx_data2);
-	IMU_UpdateData(rx_data2);
+	// -/ IMU_UpdateData(rx_data2);
 }
 uint8_t rx_data3[8] = {0}; 
 
 void fdcan3_rx_callback(void)
 {
 	fdcanx_receive(&hfdcan3, rx_data3);
-	IMU_UpdateData(rx_data3);
+	// -/ IMU_UpdateData(rx_data3);
 }
 
 #else

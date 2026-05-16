@@ -168,6 +168,7 @@ typedef struct
 } Chassis_Ctrl_Cmd_s;
 
 // cmd发布的云台控制数据,由gimbal订阅
+// 状态机结构体
 typedef struct
 { // 云台角度控制
     float yaw;
@@ -239,7 +240,7 @@ typedef struct
 
 } Chassis_Upload_Data_s;
 
-
+// 云台反馈数据,由gimbal订阅(无注释)
 typedef struct
 {
     attitude_t gimbal_imu_data;

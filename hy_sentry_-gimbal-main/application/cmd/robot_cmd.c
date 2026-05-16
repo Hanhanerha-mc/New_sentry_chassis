@@ -68,6 +68,7 @@ void RobotCMDInit()
     gimbal_feed_sub = SubRegister("gimbal_feed", sizeof(Gimbal_Upload_Data_s));
     shoot_cmd_pub = PubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
     shoot_feed_sub = SubRegister("shoot_feed", sizeof(Shoot_Upload_Data_s));
+    // 未知意味的初始化
     vision_recv_l_data_pub = PubRegister("vision_recv_l_data", sizeof(Vision_Recv_s));
     vision_recv_r_data_pub = PubRegister("vision_recv_r_data", sizeof(Vision_Recv_s));
 
@@ -76,6 +77,7 @@ void RobotCMDInit()
     chassis_feed_sub = SubRegister("chassis_feed", sizeof(Chassis_Upload_Data_s));
 #endif // ONE_BOARD
 #ifdef GIMBAL_BOARD
+    // 双板通信配置
     CANComm_Init_Config_s comm_conf = {
         .can_config = {
             .can_handle = &hcan1,
@@ -85,7 +87,7 @@ void RobotCMDInit()
         .recv_data_len = sizeof(Chassis_Upload_Data_s),
         .send_data_len = sizeof(Chassis_Ctrl_Cmd_s),
     };
-    cmd_can_comm = CANCommInit(&comm_conf);
+    cmd_can_comm = CANCommInit(&comm_conf); // 初始化双板通信
 #endif // GIMBAL_BOARD
     gimbal_cmd_send.pitch = 0;
 
@@ -95,6 +97,7 @@ void RobotCMDInit()
 /**
  * @brief 根据gimbal app传回的当前电机角度计算和零位的误差
  *        单圈绝对角度的范围是0~360,说明文档中有图示
+ * @note 用来计算云台和底盘之间的角度
  *
  */
 static void CalcOffsetAngle()
@@ -125,7 +128,8 @@ static void CalcOffsetAngle()
  */
 static void RemoteControlSet()
 {
-    // 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据?
+    // TODO 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据?
+    // * TYPE是之前或现在的数据，用于按键逻辑判断
     if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下],底盘跟随云台
     {
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
@@ -139,7 +143,7 @@ static void RemoteControlSet()
     // 云台参数,确定云台控制数据
     if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中],视觉模式
     {
-        // 待添加,视觉会发来和目标的误差,同样将其转化为total angle的增量进行控制
+        // TODO 待添加,视觉会发来和目标的误差,同样将其转化为total angle的增量进行控制
 
         // ...
     }
@@ -153,7 +157,7 @@ static void RemoteControlSet()
     }
     // 云台软件限位
 
-    // 底盘参数,目前没有加入小陀螺(调试似乎暂时没有必要),系数需要调整
+    // TODO 底盘参数,目前没有加入小陀螺(调试似乎暂时没有必要),系数需要调整
     chassis_cmd_send.vx = 10.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
     chassis_cmd_send.vy = 10.0f * (float)rc_data[TEMP].rc.rocker_r1; // 1数值方向
 
@@ -178,23 +182,23 @@ static void RemoteControlSet()
 }
 
 /**
- * @brief 控制输入为导航和视觉的模式和控制量设置
+ * @brief 云台和发射机构状态机设置
  *
  */
 static void VisionRadaControlSet()
 {
     gimbal_cmd_send.gimbal_mode = GIMBAL_VISION;    //云台自瞄模式
+    // 视觉数据处理后将数据存入命令发送结构体
     gimbal_cmd_send.yaw = vision_recv_data_->yaw;
     gimbal_cmd_send.pitch = vision_recv_data_->pitch;
-
     gimbal_cmd_send.yaw_vel = vision_recv_data_->yaw_vel;
     gimbal_cmd_send.pitch_vel = vision_recv_data_->pitch_vel;
 
     if(referee_recv_data->GameRobotState.current_HP <= 0)
-        gimbal_cmd_send.gimbal_angle = -1;
+        gimbal_cmd_send.gimbal_angle = -1;      // TODO 对状态机的代码进行规范化
     else
         gimbal_cmd_send.gimbal_angle = 1;
-
+    // 根据比赛状态关闭云台
     if(referee_recv_data->GameState.game_progress == 0 || referee_recv_data->GameState.game_progress == 5|| referee_recv_data->GameState.game_progress == 1|| referee_recv_data->GameState.game_progress == 2|| referee_recv_data->GameState.game_progress == 3)
         gimbal_cmd_send.gimbal_angle = -1;
 
@@ -234,7 +238,7 @@ static void VisionRadaControlSet()
  */
 static void MouseKeySet() 
 {
-    chassis_cmd_send.vx = rc_data[TEMP].key[KEY_PRESS].w * 300 - rc_data[TEMP].key[KEY_PRESS].s * 300; // 系数待测
+    chassis_cmd_send.vx = rc_data[TEMP].key[KEY_PRESS].w * 300 - rc_data[TEMP].key[KEY_PRESS].s * 300; // TODO 系数待测
     chassis_cmd_send.vy = rc_data[TEMP].key[KEY_PRESS].s * 300 - rc_data[TEMP].key[KEY_PRESS].d * 300;
 
     gimbal_cmd_send.yaw += (float)rc_data[TEMP].mouse.x / 660 * 10; // 系数待测
@@ -300,7 +304,7 @@ static void MouseKeySet()
         chassis_cmd_send.chassis_speed_buff = 100;
         break;
     }
-    switch (rc_data[TEMP].key[KEY_PRESS].shift) // 待添加 按shift允许超功率 消耗缓冲能量
+    switch (rc_data[TEMP].key[KEY_PRESS].shift) // TODO 待添加 按shift允许超功率 消耗缓冲能量
     {
     case 1:
 
@@ -316,7 +320,7 @@ static void MouseKeySet()
  * @brief  紧急停止,包括遥控器左上侧拨轮打满/重要模块离线/双板通信失效等
  *         停止的阈值'300'待修改成合适的值,或改为开关控制.
  *
- * @todo   后续修改为遥控器离线则电机停止(关闭遥控器急停),通过给遥控器模块添加daemon实现
+ * @todo   //TODO 后续修改为遥控器离线则电机停止(关闭遥控器急停),通过给遥控器模块添加daemon实现
  *
  */
 static void EmergencyHandler()
@@ -355,9 +359,10 @@ void RobotCMDTask()
     SubGetMessage(shoot_feed_sub, &shoot_fetch_data);
     SubGetMessage(gimbal_feed_sub, &gimbal_fetch_data);
 
+    // * 当前是云台自瞄模式，遥控器模式代码被注释
     // VisionTrajectory();
     // 根据gimbal的反馈值计算云台和底盘正方向的夹角,不需要传参,通过static私有变量完成
-    CalcOffsetAngle();
+    CalcOffsetAngle();      // 计算云台和底盘正方向的夹角，函数内部有对角度操作
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
     // if (switch_is_down(rc_data[TEMP].rc.switch_left)) // 遥控器左侧开关状态为[下],遥控器控制
     //     RemoteControlSet();

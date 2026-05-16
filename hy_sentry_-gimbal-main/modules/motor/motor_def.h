@@ -8,7 +8,6 @@
  * @copyright Copyright (c) 2022 HNU YueLu EC all rights reserved
  *
  */
- 
 #ifndef MOTOR_DEF_H
 #define MOTOR_DEF_H
 
@@ -28,7 +27,7 @@ typedef enum
     SPEED_LOOP = 0b0010,
     ANGLE_LOOP = 0b0100,
 
-    // only for checking
+    // only for checking（？）
     SPEED_AND_CURRENT_LOOP = 0b0011,
     ANGLE_AND_SPEED_LOOP = 0b0110,
     ALL_THREE_LOOP = 0b0111,
@@ -139,8 +138,8 @@ typedef struct
 /* 用于初始化CAN电机的结构体,各类电机通用 */
 typedef struct
 {
-    Motor_Controller_Init_s controller_param_init_config;
-    Motor_Control_Setting_s controller_setting_init_config;
+    Motor_Controller_Init_s controller_param_init_config;           // 各种PID结构体和反馈指针
+    Motor_Control_Setting_s controller_setting_init_config;         // 电机控制设置,包括闭环类型,反转标志和反馈来源
     Motor_Type_e motor_type;
     CAN_Init_Config_s can_init_config;
 } Motor_Init_Config_s;

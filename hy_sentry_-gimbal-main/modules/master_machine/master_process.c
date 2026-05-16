@@ -18,7 +18,7 @@
 #include "bsp_dwt.h"
 
 static Vision_Recv_s recv_data;
-static Vision_Send_s send_data;
+static Vision_Send_s send_data;         // 视觉发送数据
 static DaemonInstance *vision_daemon_instance;
 
 static rv2_recv_protocol_s *rv2_recv;

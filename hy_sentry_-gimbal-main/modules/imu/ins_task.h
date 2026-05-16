@@ -96,13 +96,13 @@ typedef struct
  * @brief 传递INS地址 
  * @return
  */
-attitude_t *INS_ptr(void);
+attitude_T *INS_ptr(void);
 
 /**
  * @brief 初始化惯导解算系统
  *
  */
-attitude_t *INS_Init(void);
+attitude_T *INS_Init(void);
 
 /**
  * @brief 此函数放入实时系统中,以1kHz频率运行

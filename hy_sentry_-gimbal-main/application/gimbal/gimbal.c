@@ -1,4 +1,4 @@
-    #include "gimbal.h"
+#include "gimbal.h"
 #include "robot_def.h"
 #include "dji_motor.h"
 #include "dmmotor.h"
@@ -34,7 +34,7 @@
 #define PITCH_COEFF_REMOTE 0.134848485f //云台俯仰遥控系数
 #define YAW_VISION_OFFSET 12
 
-static attitude_t *gimbal_IMU_data; // 云台IMU数据
+// -/ static attitude_t *gimbal_IMU_data; // 云台IMU数据
 static attitude_T *Gimbal_IMU_data; // 云台IMU数据
 static DJIMotorInstance *yaw_l_motor, *yaw_r_motor, *pitch_l_motor, *pitch_r_motor; // 云台电机实例
 static float vision_l_yaw_tar; 
@@ -67,7 +67,8 @@ static float optimized_yaw, optimized_pitch;
 static YawPredictor_t yaw_predictor;  // ← 新增：Yaw 轴预测控制器实例
 void GimbalInit()
 {   
-    float gimbal_base_angle_feed_ptr = gimbal_IMU_data->YawTotalAngle;
+    // 未用到的变量初始化
+    // -/ float gimbal_base_angle_feed_ptr = gimbal_IMU_data->YawTotalAngle;
 
     Gimbal_IMU_data = INS_ptr();
  
@@ -85,7 +86,7 @@ void GimbalInit()
                 .DeadBand = 0,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 100,
-                .Output_LPF_RC=0.00005,
+                .Output_LPF_RC = 0.00005,
                 .MaxOut = 2000,
             },
             .speed_PID = {
@@ -150,6 +151,7 @@ void GimbalInit()
     /*
         抬头参数
     */
+    // 两个电机初始化
     // 电机对total_angle闭环,上电时为零,会保持静止,收到遥控器数据再动
     yaw_l_motor = DJIMotorInit(&yaw_config);
     // yaw_config.can_init_config.can_handle = &hcan2;
@@ -165,14 +167,14 @@ void GimbalInit()
     vision_recv_data_sub_l = SubRegister("vision_recv_l_data", sizeof(Vision_Recv_s));
     vision_recv_data_sub_r = SubRegister("vision_recv_r_data", sizeof(Vision_Recv_s));
 
-    gimbal_IMU_data = INS_Init(); 
+    // -/ gimbal_IMU_data = INS_Init(); 
     Gimbal_IMU_data = INS_Init(); 
 
     // ========== 新增：初始化 Yaw 预测控制器 ==========
     // 参数：dt=5ms (200Hz 控制周期), 预测时间=40ms (补偿系统延迟)
     YawPredictor_Init(&yaw_predictor, 0.005f, 0.010f);
 
-    // 自瞄优化器初始化 (需要添加到 Makefile 后才能使用)
+    // 自瞄优化器初始化 (需要添加到 Makefile 后才能使用)(现在用CMake)
     AimOptimizer_Init(&aim_optimizer, 0.005f, 0.020f);  // dt=5ms, 预测时间=40ms
 }
 
@@ -213,53 +215,27 @@ void GimbalInit()
  * @brief ins数据获取,从惯导模块获取数据，传送给视觉
  * @return
  */
-void gimbal_IMU_Task(){
-    // float *q = INS_Q();
-    // gimbal_IMU_data->q[0] = q[0];
-    // gimbal_IMU_data->q[1] = q[1];
-    // gimbal_IMU_data->q[2] = q[2];
-    // gimbal_IMU_data->q[3] = q[3];
-
-    // float *Accel = INS_ACCEL();
-    // gimbal_IMU_data->Accel[0] = Accel[0];
-    // gimbal_IMU_data->Accel[1] = Accel[1];   
-    // gimbal_IMU_data->Accel[2] = Accel[2];
-
-    // float *Gyro = INS_GYRO();
-    // gimbal_IMU_data->Gyro[0] = Gyro[0]; 
-    // gimbal_IMU_data->Gyro[1] = Gyro[1];
-    // gimbal_IMU_data->Gyro[2] = Gyro[2];
-
-    // // gimbal_IMU_data->YawTotalAngle = INS_YawTotalAngle();
-    // // gimbal_IMU_data->Roll = INS_Roll();
-    // // gimbal_IMU_data->Pitch = INS_Pitch();
-    // // gimbal_IMU_data->Yaw = INS_Yaw();
-    // gimbal_IMU_data->YawTotalAngle = Gimbal_IMU_data->YawTotalAngle;
-    // gimbal_IMU_data->Roll = Gimbal_IMU_data->Roll;
-    // gimbal_IMU_data->Pitch = Gimbal_IMU_data->Pitch;
-    // gimbal_IMU_data->Yaw = Gimbal_IMU_data->Yaw;
-}
 
 /**
  * @brief 角度计算
  */
+// ? 被注释了的无用函数
+// static void VisionAngleCalc()
+// {   
+//     vision_gimbal_data.Vision_l_yaw = yaw_l_motor->measure.total_angle - YAW_L_INIT_ANGLE;
+//     vision_gimbal_data.Vision_l_pitch = pitch_l_motor->measure.total_angle - PITCH_L_INIT_ANGLE;
 
-static void VisionAngleCalc()
-{   
-    // vision_gimbal_data.Vision_l_yaw = yaw_l_motor->measure.total_angle - YAW_L_INIT_ANGLE;
-    // vision_gimbal_data.Vision_l_pitch = pitch_l_motor->measure.total_angle - PITCH_L_INIT_ANGLE;
+//     vision_gimbal_data.Vision_r_yaw = gimbal_IMU_data->Yaw + yaw_r_motor->measure.total_angle - YAW_R_INIT_ANGLE;
+//     vision_gimbal_data.Vision_set_l_yaw = gimbal_cmd_recv.yaw + YAW_L_INIT_ANGLE;
+//     vision_gimbal_data.Vision_set_l_pitch = gimbal_cmd_recv.pitch + PITCH_L_INIT_ANGLE - PITCH_L_MIN;
 
-    // vision_gimbal_data.Vision_r_yaw = gimbal_IMU_data->Yaw + yaw_r_motor->measure.total_angle - YAW_R_INIT_ANGLE;
-    // vision_gimbal_data.Vision_set_l_yaw = gimbal_cmd_recv.yaw + YAW_L_INIT_ANGLE;
-    // vision_gimbal_data.Vision_set_l_pitch = gimbal_cmd_recv.pitch + PITCH_L_INIT_ANGLE - PITCH_L_MIN;
+//     vision_gimbal_data.Vision_set_r_yaw = vision_gimbal_data.Vision_r_yaw_tar + YAW_R_INIT_ANGLE - gimbal_IMU_data->Yaw;
+//     vision_gimbal_data.Vision_set_r_yaw = vision_gimbal_data.Vision_r_yaw_tar + YAW_R_INIT_ANGLE;
+//     vision_gimbal_data.Vision_set_r_pitch = vision_gimbal_data.Vision_r_pitch_tar + PITCH_R_INIT_ANGLE - PITCH_R_MIN;
 
-    // vision_gimbal_data.Vision_set_r_yaw = vision_gimbal_data.Vision_r_yaw_tar + YAW_R_INIT_ANGLE - gimbal_IMU_data->Yaw;
-    // vision_gimbal_data.Vision_set_r_yaw = vision_gimbal_data.Vision_r_yaw_tar + YAW_R_INIT_ANGLE;
-    // vision_gimbal_data.Vision_set_r_pitch = vision_gimbal_data.Vision_r_pitch_tar + PITCH_R_INIT_ANGLE - PITCH_R_MIN;
-
-    // vision_gimbal_data.Vision_r_yaw = yaw_r_motor->measure.total_angle - YAW_R_INIT_ANGLE;
-    // vision_gimbal_data.Vision_r_pitch = pitch_r_motor->measure.total_angle  - PITCH_R_INIT_ANGLE;
-}
+//     vision_gimbal_data.Vision_r_yaw = yaw_r_motor->measure.total_angle - YAW_R_INIT_ANGLE;
+//     vision_gimbal_data.Vision_r_pitch = pitch_r_motor->measure.total_angle  - PITCH_R_INIT_ANGLE;
+// }
 
 static float temp_statue;
 
@@ -282,13 +258,14 @@ static float delta_theta = 0.0f;
 static float time_tt; //大yaw转动计时
 static float time_tick_; //小yaw转动计时
 
+// ? 我注释呢
 static void GimbalSessionStart()
 {
     static float time, last_time, diff_time, time_T, sint, cnt;
 
     time = DWT_GetTimeline_ms();
     time_T = DWT_GetTimeline_s();
-    sint = arm_sin_f32(time_T);
+    sint = arm_sin_f32(time_T);     // 计算sin(time_T)，时间正弦值（用于周期性动作）
 
     wait_time --;
 
@@ -296,15 +273,15 @@ static void GimbalSessionStart()
     {
        // Gimbal_T += GimbalDirection;
         diff_time += time - last_time;
-        pitch_i_term = 0.0f;
-        pitch_last_err = 0.0f;
+        pitch_i_term = 0.0f;        //清除积分
+        pitch_last_err = 0.0f;      //消除上次误差
 
-        if(diff_time > 500)
+        if(diff_time > 500)     // 超时后开始扫描
         {
-            if(gimbal_cmd_recv.gimbal_angle == 1)
+            if(gimbal_cmd_recv.gimbal_angle == 1)       //是否启动yaw的三名
             {
-                time_tt += 0.005f;
-                Gimbal_T = arm_sin_f32(time_tt * 0.3f) * 240.0f + delta_theta;
+                time_tt += 0.005f;          // 计算总时间是？
+                Gimbal_T = arm_sin_f32(time_tt * 0.3f) * 240.0f + delta_theta;  //theta是0？
             }
             else if (gimbal_cmd_recv.gimbal_angle == -1)
             {
@@ -329,12 +306,13 @@ static void GimbalSessionStart()
             raw_pitch_input = gimbal_cmd_recv.pitch* 10 *(-1.0f); // 小误差范围内不进行调整，避免震荡
         }
 
+        // TODO 好高级的算法，看懂看起来需要时间
         AimOptimizer_Process(&aim_optimizer, 
                                 raw_yaw_input, raw_pitch_input,
                                 &optimized_yaw, &optimized_pitch);
                                 
         vision_l_yaw_tar = yaw_l_motor->measure.total_angle
-                              + optimized_yaw * 0.38f;
+                              + optimized_yaw * 0.38f;      // ? 相对值吗
 
         vision_l_pitch_tar = pitch_l_motor->measure.total_angle 
                                 + optimized_pitch *0.37f;
@@ -361,6 +339,7 @@ void GimbalTask()
     SubGetMessage(vision_recv_data_sub_l, &vision_recv_data_l);
     SubGetMessage(vision_recv_data_sub_r, &vision_recv_data_r);
 
+    // 为什么注释？
     //为了避免Gimbal_Base在云台上电时失能，每次都要判断一下，如果是失能状态就使能它，保持云台IMU数据的更新，保证云台的稳定性和响应速度
     // if(Gimbal_Base->stop_flag == MOTOR_STOP)
     // {
@@ -369,7 +348,7 @@ void GimbalTask()
     // }
     
     yaw_l_motor->stop_flag = MOTOR_ENALBED;
-    gimbal_IMU_Task();
+    // gimbal_IMU_Task();
     temp_statue = gimbal_cmd_recv.gimbal_mode;
     if(gimbal_cmd_recv.gimbal_mode == GIMBAL_VISION)
     {   
@@ -393,7 +372,8 @@ void GimbalTask()
     GimbalSessionStart();
 
     VisionSetAltitude(vision_gimbal_data.Vision_r_yaw * DEGREE_2_RAD, vision_gimbal_data.Vision_r_pitch * DEGREE_2_RAD, 0);
-    VisionSetImuData(gimbal_IMU_data->q[0], gimbal_IMU_data->q[1], gimbal_IMU_data->q[2], gimbal_IMU_data->q[3], Gimbal_IMU_data->Gyro[2], Gimbal_IMU_data->Gyro[0]);
+    // ? 将IMU的数据放到视觉发送函数体上，但之前并没有对该数据结构体操作，删除
+    // -/ VisionSetImuData(gimbal_IMU_data->q[0], gimbal_IMU_data->q[1], gimbal_IMU_data->q[2], gimbal_IMU_data->q[3], Gimbal_IMU_data->Gyro[2], Gimbal_IMU_data->Gyro[0]);
     // @todo:现在已不再需要电机反馈,实际上可以始终使用IMU的姿态数据来作为云台的反馈,yaw电机的offset只是用来跟随底盘
     // 根据控制模式进行电机反馈切换和过渡,视觉模式在robot_cmd模块就已经设置好,gimbal只看yaw_ref和pitch_ref
     switch (gimbal_cmd_recv.gimbal_mode)
@@ -462,7 +442,7 @@ void GimbalTask()
     // ...
 
     // 设置反馈数据,主要是imu和yaw的ecd
-    gimbal_feedback_data.gimbal_imu_data = *gimbal_IMU_data;
+    // -/ gimbal_feedback_data.gimbal_imu_data = *gimbal_IMU_data;
     gimbal_feedback_data.yaw_motor_single_round_angle = yaw_l_motor->measure.angle_single_round;
 
     // 推送消息

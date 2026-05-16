@@ -22,7 +22,8 @@ static uint8_t low_contr[CMD_VEL_CONTROL_FRAME_SIZE + INS_SIZE];
 
 static USARTInstance *cmd_vel_usart_instance;   //导航串口实例
 static DaemonInstance *cmd_vel_daemo_instance;  //导航守护进程实例
-static attitude_t *gimbal_imu_data; // 云台数据转发
+// TODO 这里对IMU结构体进行了修改，后续要看看有无bug
+static attitude_T *Gimbal_imu_data; // 云台数据转发
 
 /**
  * @brief cmd_vel数据包解析
@@ -56,7 +57,7 @@ static void Cmd_vel_Parse(const uint8_t *cmd_vel_buf)
         // memcpy(&radar_ctrl.angular.z, &cmd_vel_buf[21], sizeof(float));
 
         memcpy(&low_contr[0], cmd_vel_buf, 25);
-        memcpy(&low_contr[25], gimbal_imu_data, sizeof(attitude_t));
+        memcpy(&low_contr[25], Gimbal_imu_data, sizeof(attitude_t));
 
         low_contr[0]  = START_BYTE;
 
@@ -116,7 +117,7 @@ static void CmdVelLostCallback()
  */
 Radar_Data *CmdVelControlInit(UART_HandleTypeDef *cmd_vel_usart_handle)
 {   
-    gimbal_imu_data = INS_ptr();
+    Gimbal_imu_data = INS_ptr();
     USART_Init_Config_s config;
     config.module_callback = CmdVelControlRxCallback;
     config.usart_handle = cmd_vel_usart_handle;
