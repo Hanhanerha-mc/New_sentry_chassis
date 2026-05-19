@@ -128,7 +128,7 @@ static void CalcOffsetAngle()
  */
 static void RemoteControlSet()
 {
-    // TODO 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据?
+    // TODO 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据? 好像不需要一直循环吧
     // * TYPE是之前或现在的数据，用于按键逻辑判断
     if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下],底盘跟随云台
     {
@@ -213,7 +213,7 @@ static void VisionRadaControlSet()
         shoot_cmd_send.shoot_mode = SHOOT_OFF;
         shoot_cmd_send.load_mode = LOAD_STOP;
     }
-    else if(vision_recv_data_->target_state == READY_TO_FIRE || switch_is_mid(rc_data[TEMP].rc.switch_right)){
+    else if(vision_recv_data_->target_state == READY_TO_FIRE || switch_is_mid(rc_data[TEMP].rc.switch_right)) {
         shoot_cmd_send.friction_mode = FRICTION_ON;
         shoot_cmd_send.shoot_mode = SHOOT_ON;
         shoot_cmd_send.load_mode = LOAD_BURSTFIRE; 
@@ -370,8 +370,14 @@ void RobotCMDTask()
     //     MouseKeySet();
     // else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 控器左侧开关状态为[中],视觉导航模式
     //     VisionRadaControlSet();
+#define REMOTE_CONTROL_DEBUG
+#ifdef REMOTE_CONTROL_DEBUG
+    RemoteControlSet();
+#endif // REMOTE_CONTROL_DEBUG 
 
+#ifdef VISION_NAVIGATION
     VisionRadaControlSet();
+#endif // VISION_NAVIGATION
 
     // EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
 

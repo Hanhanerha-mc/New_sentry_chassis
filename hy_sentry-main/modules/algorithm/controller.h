@@ -37,7 +37,7 @@ typedef enum
     PID_ChangingIntegrationRate = 0b00100000,     // 0010 0000
     PID_DerivativeFilter = 0b01000000,            // 0100 0000
     PID_ErrorHandle = 0b10000000,                 // 1000 0000
-    PID_SlopeAccelerationDeceleration = 0b100000000,    // 1000 0000 0000
+    PID_SlopeAccelerationDeceleration = 0b000100000000,    // 0001 0000 0000   
 } PID_Improvement_e;
 
 /* -------------------------斜坡规划结构体---------------------------- */

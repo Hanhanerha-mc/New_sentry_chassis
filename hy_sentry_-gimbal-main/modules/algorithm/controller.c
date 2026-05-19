@@ -11,6 +11,8 @@
 #include "controller.h"
 #include "memory.h"
 
+// * 原版框架
+
 /* ----------------------------下面是pid优化环节的实现---------------------------- */
 
 // 梯形积分
@@ -94,6 +96,7 @@ static void f_Output_Limit(PIDInstance *pid)
 }
 
 // 电机堵转检测
+// TODO 利用比例检测的方案并不完美，会导致在目标值很小时微小正常误差也容易被判定为堵转错误
 static void f_PID_ErrorHandle(PIDInstance *pid)
 {
     /*Motor Blocked Handle*/
@@ -144,6 +147,8 @@ void PIDInit(PIDInstance *pid, PID_Init_Config_s *config)
  * @param[in]      期望值
  * @retval         返回空
  */
+
+ // TODO PID代码有些冗余,后续需要可以优化性能，如变量先保存入结构体，指针多次解引用的开销，
 float PIDCalculate(PIDInstance *pid, float measure, float ref)
 {
     // 堵转检测

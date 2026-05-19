@@ -96,7 +96,7 @@ static void f_Output_Limit(PIDInstance *pid)
 }
 
 // 斜坡速度规划
-
+// TODO 斜坡速度规划的实现,以后再看
 static void f_slope_acceleration_deceleration(PIDInstance *pid, float *target, float *now_real)
 {
     pid->slope.target = *target;
@@ -282,8 +282,19 @@ void PIDInit(PIDInstance *pid, PID_Init_Config_s *config)
  * @param[in]      期望值
  * @retval         返回空
  */
+ #define DEBUG_PID
 float PIDCalculate(PIDInstance *pid, float measure, float ref)
 {
+#ifdef DEBUG_PID
+    static float kpx = 5.5f;
+    static float kix = 0.0f;
+    static float dead = 0.0f;
+    static float output_lpf_rc = 0.0f;
+    pid->Kp = kpx;
+    pid->Ki = kix;
+    pid->DeadBand = dead;
+    pid->Output_LPF_RC = output_lpf_rc;
+#endif
     // 堵转检测
     if (pid->Improve & PID_ErrorHandle)
         f_PID_ErrorHandle(pid);

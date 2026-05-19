@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"d:/VScode Workspace/STM32H723VGT6/New_sentry_chassis/\" | head -50)",
+      "Read(//d/VScode Workspace/STM32H723VGT6/New_sentry_chassis/**)",
+      "Bash(find \"d:/VScode Workspace/STM32H723VGT6\" -maxdepth 3 -type f \\\\\\( -name \"*.py\" -o -name \"*.java\" -o -name \"*.js\" -o -name \"*.ts\" -o -name \"*.proto\" \\\\\\) 2>/dev/null | head -30)",
+      "Read(//d/VScode Workspace/STM32H723VGT6/**)",
+      "Bash(ls -la \"d:/VScode Workspace/\")",
+      "Read(//d/VScode Workspace/**)",
+      "Bash(xargs grep -l \"Vision_Recv\\\\|Vision_Send\")"
+    ]
+  }
+}

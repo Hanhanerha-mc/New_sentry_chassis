@@ -100,7 +100,8 @@ static void CalcOffsetAngle()
 {
     SubGetMessage(GimbalBase_sub, &yaw_total_angle);
     SubGetMessage(chassis_feed_sub, &chassis_fetch_data);
-    chassis_cmd_send.offset_angle =  chassis_fetch_data.chassis_imu_data->Yaw;
+    // ?
+    chassis_cmd_send.offset_angle = chassis_fetch_data.chassis_imu_data->Yaw;
     // chassis_cmd_send.offset_angle = yaw_total_angle - chassis_fetch_data.chassis_imu_data->Yaw;
 }
 
@@ -126,7 +127,7 @@ static void RadarControlSet()
         if(referee_recv_data->RFID_data == 8388608){
         chassis_cmd_send.vx = (float)radar_data->linear.x * 150;
         chassis_cmd_send.vy = -(float)radar_data->linear.y * 150;
-        chassis_cmd_send.wz = 3.1415926 * 67;
+        chassis_cmd_send.wz = 3.1415926 * 67; 
         }
         else{
         chassis_cmd_send.vx = (float)radar_data->linear.x * 150;
@@ -183,7 +184,7 @@ static void RemoteControlSet()
     }
     // 左侧开关状态为[下],或视觉未识别到目标,纯遥控器拨杆控制
     if (switch_is_down(rc_data[TEMP].rc.switch_left) || vision_recv_data->target_state == NO_TARGET)
-    { // 按照摇杆的输出大小进行角度增量,增益系数需 调整
+    { // 按照摇杆的输出大小进行角度增量,增益系数需调整
          gimbal_cmd_send.yaw += 0.005f * (float)rc_data[TEMP].rc.rocker_l_;
         //gimbal_cmd_send.yaw += vision_recv_data->yaw;
         if(gimbal_cmd_send.pitch+0.001f * (float)rc_data[TEMP].rc.rocker_l1<12.0f&&gimbal_cmd_send.pitch+0.001f * (float)rc_data[TEMP].rc.rocker_l1>-20.0f)
@@ -197,10 +198,29 @@ static void RemoteControlSet()
     }
     // 云台软件限位
 
+    # define RC_DEADBAND 80
     // 底盘参数,目前没有加入小陀螺(调试似乎暂时没有必要),系数需要调整
-    chassis_cmd_send.vx = (float)rc_data[TEMP].rc.rocker_r1 / 1.5; // 竖直方向
-    chassis_cmd_send.vy = ((float)rc_data[TEMP].rc.rocker_r_ - 8.0f) / 1.5; // 水平方向
-    chassis_cmd_send.wz = (float)rc_data[TEMP].rc.rocker_l1 / 1.5;    // 旋转速度
+    if (abs(rc_data[TEMP].rc.rocker_r1) < RC_DEADBAND) {
+        chassis_cmd_send.vx = 0;
+    }
+    else {
+        chassis_cmd_send.vx = (float)rc_data[TEMP].rc.rocker_r1 / 1.5; // 竖直方向
+    }
+    if (abs(rc_data[TEMP].rc.rocker_r_) < RC_DEADBAND) {
+        chassis_cmd_send.vy = 0;
+    }
+    else {
+        chassis_cmd_send.vy = (float)rc_data[TEMP].rc.rocker_r_ / 1.5; // 水平方向
+    }
+    if (abs(rc_data[TEMP].rc.rocker_l_) < RC_DEADBAND) {
+        chassis_cmd_send.wz = 0;
+    }
+    else {
+        chassis_cmd_send.wz = (float)rc_data[TEMP].rc.rocker_l_ / 1.5;    // 旋转速度
+    }
+    // chassis_cmd_send.vx = (float)rc_data[TEMP].rc.rocker_r1 / 1.5; // 竖直方向
+    // chassis_cmd_send.vy = ((float)rc_data[TEMP].rc.rocker_r_ - 8.0f) / 1.5; // 水平方向
+    // chassis_cmd_send.wz = (float)rc_data[TEMP].rc.rocker_l1 / 1.5;    // 旋转速度
     chassis_cmd_send.gimbal_angle = -0.001 * (float)rc_data[TEMP].rc.rocker_l_; //云台旋转速度
     //chassis_cmd_send.gimbal_angle += -0.001 * (float)rc_data[TEMP].rc.rocker_l_; //云台旋转速度
     // 发射参数
@@ -228,7 +248,7 @@ static void RemoteControlSet()
  */
 static void MouseKeySet()
 {
-    chassis_cmd_send.vx = rc_data[TEMP].key[KEY_PRESS].w * 300 - rc_data[TEMP].key[KEY_PRESS].s * 300; // 系数待测
+    chassis_cmd_send.vx = rc_data[TEMP].key[KEY_PRESS].w * 300 - rc_data[TEMP].key[KEY_PRESS].s * 300; // TODO 系数待测
     chassis_cmd_send.vy = rc_data[TEMP].key[KEY_PRESS].s * 300 - rc_data[TEMP].key[KEY_PRESS].d * 300;
 
     gimbal_cmd_send.yaw += (float)rc_data[TEMP].mouse.x / 660 * 10; // 系数待测
@@ -306,6 +326,21 @@ static void MouseKeySet()
     }
 }
 
+void DebugControlSet()
+{
+    // 直接设置数值进行控制,用于调试
+    chassis_cmd_send.vx = 0;
+    chassis_cmd_send.vy = 0;
+    chassis_cmd_send.wz = 0;
+    gimbal_cmd_send.yaw = 0;
+    gimbal_cmd_send.pitch = 0;
+    gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
+    chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+    shoot_cmd_send.shoot_mode = SHOOT_ON;
+    shoot_cmd_send.friction_mode = FRICTION_OFF;
+    shoot_cmd_send.load_mode = LOAD_STOP;
+}
+
 /**
  * @brief  紧急停止,包括遥控器左上侧拨轮打满/重要模块离线/双板通信失效等
  *         停止的阈值'300'待修改成合适的值,或改为开关控制.
@@ -349,19 +384,23 @@ void RobotCMDTask()
     SubGetMessage(shoot_feed_sub, &shoot_fetch_data);
     SubGetMessage(gimbal_feed_sub, &gimbal_fetch_data);
 
+    // ? 不理解这个函数的作用
     DeterminRobotID();
 
     // 根据gimbal的反馈值计算云台和底盘正方向的夹角,不需要传参,通过static私有变量完成
     CalcOffsetAngle();
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
 
-    // if (switch_is_up(rc_data[TEMP].rc.switch_left)) // 遥控器左侧开关状态为[上],键盘控制
-    //     MouseKeySet();
-    // else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) //遥控器左侧开关状态为[中],导航控制
-    //     RadarControlSet();
-    // else if (switch_is_down(rc_data[TEMP].rc.switch_left)) // 遥控器左侧开关状态为[下],遥控器控制
-    //     RemoteControlSet();
-    RadarControlSet();
+    if (switch_is_up(rc_data[TEMP].rc.switch_left)) // 遥控器左侧开关状态为[上],键盘控制
+        MouseKeySet();
+    else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) //遥控器左侧开关状态为[中],导航控制
+        RadarControlSet();
+        // 数值直接控制
+        // DebugControlSet();
+    else if (switch_is_down(rc_data[TEMP].rc.switch_left)) // 遥控器左侧开关状态为[下],遥控器控制
+        RemoteControlSet();
+    // RadarControlSet();
+
     // RemoteControlSet();
     // RemoteControlSet();
     // RadarControlSet();
@@ -374,6 +413,7 @@ void RobotCMDTask()
     // 其他应用所需的控制数据在remotecontrolsetmode和mousekeysetmode中完成设置
 
 #ifdef ONE_BOARD
+    // ? 为什么底盘要上传“发送给底盘的应用的信息”
     PubPushMessage(chassis_cmd_pub, (void *)&chassis_cmd_send);
 #endif // ONE_BOARD
 #ifdef GIMBAL_BOARD

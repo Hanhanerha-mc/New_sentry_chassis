@@ -12,6 +12,7 @@
  */
 
 #include "chassis.h"
+#include "FreeRTOS.h"
 #include "robot_def.h"
 #include "power_control.h"
 #include "super_cap.h"
@@ -23,6 +24,7 @@
 #include "referee_UI.h"
 #include "arm_math.h"
 #include "cmd_vel.h"
+#include <math.h>
 
 /* 根据robot_def.h中的macro自动计算的参数 */
 #define WHEEL_LINE_RATION (1 / (180.0f * REDUCTION_RATIO_WHEEL)) * PI * RADIUS_WHEEL   //将舵轮电机转速转换为底盘线速度的比例
@@ -91,6 +93,7 @@ static void Steer_Chassis_Control(ChassisHandle_t *Chassis_hanlde);
 static void YawAngleCalculate();
 
 // first表示第一象限， second表示第二象限，以此类推
+// * 此处留着可能是用作舵轮开发
 static DJIMotorInstance *First_GM6020_motor, *Second_GM6020_motor, *Third_GM6020_motor, *Fourth_GM6020_motor, \
                         *motor_rf,  *motor_lf,  *motor_lb,  *motor_rb;
 static DMMotorInstance  *Gimbal_Base;
@@ -237,6 +240,11 @@ void ChassisInit()
     // };
 
 /***************************************************************************************************/
+    static float kp = 4.0;
+    static float ki = 0.0;
+
+#define IMPROVE_FLAG (PID_Integral_Limit | PID_OutputFilter | PID_SlopeAccelerationDeceleration)
+#define OUTPUT_LPF_RC 0.1f
 
     Motor_Init_Config_s chassis_first_M3508_motor_config = 
     {
@@ -253,13 +261,14 @@ void ChassisInit()
             .speed_feedback_source = MOTOR_FEED,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL
         },
-        .controller_param_init_config = {.speed_PID = {.Improve = PID_Integral_Limit | PID_DerivativeFilter | PID_SlopeAccelerationDeceleration,
-                                                        .Kp = 3.5,
-                                                        .Ki = 1,
+        .controller_param_init_config = {.speed_PID = {.Improve = IMPROVE_FLAG,
+                                                        .Kp = kp,
+                                                        .Ki = ki,
                                                         .Kd = 0,
                                                         .DeadBand = 0,
                                                         .MaxOut = 20000,
                                                         .IntegralLimit = 3000, 
+                                                        .Output_LPF_RC = OUTPUT_LPF_RC,
 
                                                         .slope = {.decrease_value = 25,
                                                                   .increase_value = 25,
@@ -269,7 +278,7 @@ void ChassisInit()
         }
     };
 
-     Motor_Init_Config_s chassis_second_M3508_motor_config = 
+    Motor_Init_Config_s chassis_second_M3508_motor_config = 
     {
         .motor_type = M3508,
         .can_init_config = 
@@ -284,13 +293,14 @@ void ChassisInit()
             .speed_feedback_source = MOTOR_FEED,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL
         },
-        .controller_param_init_config = {.speed_PID = {.Improve = PID_Integral_Limit | PID_DerivativeFilter | PID_SlopeAccelerationDeceleration,
-                                                        .Kp = 3.5,
-                                                        .Ki = 1,
+        .controller_param_init_config = {.speed_PID = {.Improve = IMPROVE_FLAG,
+                                                        .Kp = kp,
+                                                        .Ki = ki,
                                                         .Kd = 0,
                                                         .DeadBand = 0,
                                                         .MaxOut = 20000,
                                                         .IntegralLimit = 3000,
+                                                        .Output_LPF_RC = OUTPUT_LPF_RC,
                                                         .slope = {.decrease_value = 25,
                                                                   .increase_value = 25,
                                                                   .slope_first = SLOPE_FIRST_REAL
@@ -314,13 +324,14 @@ void ChassisInit()
             .speed_feedback_source = MOTOR_FEED,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL
         },
-        .controller_param_init_config = {.speed_PID = {.Improve = PID_Integral_Limit | PID_DerivativeFilter | PID_SlopeAccelerationDeceleration,
-                                                        .Kp = 3.5,
-                                                        .Ki = 1,
+        .controller_param_init_config = {.speed_PID = {.Improve = IMPROVE_FLAG,
+                                                        .Kp = kp,
+                                                        .Ki = ki,
                                                         .Kd = 0,
                                                         .DeadBand = 0,
                                                         .MaxOut = 20000,
                                                         .IntegralLimit = 3000,
+                                                        .Output_LPF_RC = OUTPUT_LPF_RC,
                                                         .slope = {.decrease_value = 25,
                                                                   .increase_value = 25,
                                                                   .slope_first = SLOPE_FIRST_REAL
@@ -344,13 +355,14 @@ void ChassisInit()
             .speed_feedback_source = MOTOR_FEED,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL
         },
-        .controller_param_init_config = {.speed_PID = {.Improve = PID_Integral_Limit | PID_DerivativeFilter | PID_SlopeAccelerationDeceleration, 
-                                                        .Kp = 3.5,
-                                                        .Ki = 1,
+        .controller_param_init_config = {.speed_PID = {.Improve = IMPROVE_FLAG,
+                                                        .Kp = kp,
+                                                        .Ki = ki,
                                                         .Kd = 0,
                                                         .DeadBand = 0,
                                                         .MaxOut = 20000,
                                                         .IntegralLimit = 3000,
+                                                        .Output_LPF_RC = OUTPUT_LPF_RC,
                                                         .slope = {.decrease_value = 25,
                                                                   .increase_value = 25,
                                                                   .slope_first = SLOPE_FIRST_REAL
@@ -360,40 +372,40 @@ void ChassisInit()
     };
 
     //目前找到了之前一直卡住的问题，就是不要乱改rxid和txid ，最好使用可用的id，其他的id不要乱改，要仔细查看达妙官方手册
-Motor_Init_Config_s DMmotor_Motor_Config = {
-    .controller_setting_init_config.angle_feedback_source = OTHER_FEED,
-    .controller_setting_init_config.speed_feedback_source = MOTOR_FEED,
-    .controller_setting_init_config.close_loop_type = ANGLE_LOOP,
-    .controller_setting_init_config.feedback_reverse_flag = FEEDBACK_DIRECTION_NORMAL,
-    .controller_setting_init_config.feedforward_flag = SPEED_FEEDFORWARD,
-    .controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
-    .controller_setting_init_config.outer_loop_type = ANGLE_LOOP,
-    .can_init_config.can_handle = &hcan1,
-    // .can_init_config.can_module_callback = &DMMotorLostCallback,
-    // .can_init_config.id = (void *)0x00, 
-    .can_init_config.rx_id = 0x10, 
-    .can_init_config.tx_id = 0x20F,
+    Motor_Init_Config_s DMmotor_Motor_Config = {
+        .controller_setting_init_config.angle_feedback_source = OTHER_FEED,
+        .controller_setting_init_config.speed_feedback_source = MOTOR_FEED,
+        .controller_setting_init_config.close_loop_type = ANGLE_LOOP,
+        .controller_setting_init_config.feedback_reverse_flag = FEEDBACK_DIRECTION_NORMAL,
+        .controller_setting_init_config.feedforward_flag = SPEED_FEEDFORWARD,
+        .controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
+        .controller_setting_init_config.outer_loop_type = ANGLE_LOOP,
+        .can_init_config.can_handle = &hcan1,
+        // .can_init_config.can_module_callback = &DMMotorLostCallback,
+        // .can_init_config.id = (void *)0x00, 
+        .can_init_config.rx_id = 0x10, 
+        .can_init_config.tx_id = 0x20F,
 
-    .controller_param_init_config = {
+        .controller_param_init_config = {
 
-        .angle_PID = {
-            .Kp = 0.5,
-            .Ki = 0,
-            .Kd = 0,
-            .MaxOut = 30,
-            .IntegralLimit = 15,
-            .Improve = PID_Integral_Limit | PID_DerivativeFilter
-        },
+            .angle_PID = {
+                .Kp = 0.5,
+                .Ki = 0,
+                .Kd = 0,
+                .MaxOut = 30,
+                .IntegralLimit = 15,
+                .Improve = PID_Integral_Limit | PID_DerivativeFilter
+            },
 
-        .speed_PID = {
-            .Kp = 5,
-            .Ki = 0.1,
-            .Kd = 0,
-            .MaxOut = 50,
-            .IntegralLimit = 15,
-            .IntegralLimit = PID_Integral_Limit | PID_DerivativeFilter
+            .speed_PID = {
+                .Kp = 5,
+                .Ki = 0.1,
+                .Kd = 0,
+                .MaxOut = 50,
+                .IntegralLimit = 15,
+                .IntegralLimit = PID_Integral_Limit | PID_DerivativeFilter
+            }
         }
-    }
     };
 
     // First_GM6020_motor  = DJIMotorInit(&chassis_first_GM6020_motor_config);
@@ -622,6 +634,7 @@ void ChassisTask()
 #endif // CHASSIS_BOARD
 
     // SetPowerLimit(referee_data->GameRobotState.chassis_power_limit);//设置功率限制
+    // * 这个的状态在哪更改
     if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE)
     { 
     // 如果出现重要模块离线或遥控器设置为急停,让电机停止
@@ -654,7 +667,7 @@ void ChassisTask()
     case CHASSIS_NO_FOLLOW: // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
         chassis_cmd_recv.wz = 0;
         break;
-    case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台,不单独设置pid,以误差角度平方为速度输出
+    case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台,不单独设置pid,以误差角度平方为速度输出 // ? 为什么这里用平方进行输出
         DMMotorChangeFeed(Gimbal_Base, ANGLE_LOOP, OTHER_FEED);
         chassis_cmd_recv.wz = -1.5f * chassis_cmd_recv.offset_angle * abs(chassis_cmd_recv.offset_angle);
         break;
