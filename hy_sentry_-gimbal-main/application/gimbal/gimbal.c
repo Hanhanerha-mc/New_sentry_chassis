@@ -10,8 +10,8 @@
 #include "gimbal_aim_optimizer.h"
 #include "gimbal_yaw_predictor.h"
 
-#define YAW_L_INIT_ANGLE 0 // 云台初始角度
-#define PITCH_L_INIT_ANGLE 110 // 云台初始俯仰角度   -117.0f
+#define YAW_L_INIT_ANGLE -33.0f // 云台初始角度
+#define PITCH_L_INIT_ANGLE -8.0f // 云台初始俯仰角度   -117.0f
 
 #define YAW_R_INIT_ANGLE 0 // 云台初始角度
 #define PITCH_R_INIT_ANGLE 160.0f // 云台初始俯仰角度   -118.0f
@@ -118,21 +118,21 @@ void GimbalInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp = 164, //  Me:20
-                .Ki = 80, // 3
+                .Kp = 196, //  Me:20  164
+                .Ki = 0, // 3  80
                 .Kd = 0,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 2000, // 30
                 .MaxOut = 1000,
             },
             .speed_PID = {
-                .Kp = 50,  // 15    空载k = 10  Me: 46
-                .Ki = 20, // 500
+                .Kp = 75,  // 50    空载k = 10  Me: 46
+                .Ki = 100, // 0
                 .Kd = 0,   // 0
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .Output_LPF_RC=0.00649999983,
                 .IntegralLimit = 8500,
-                .MaxOut = 20000,
+                .MaxOut = 10000,
             },
             .other_angle_feedback_ptr = &Gimbal_IMU_data->Pitch,
             // 还需要增加角速度额外反馈指针,注意方向,ins_task.md中有c板的bodyframe坐标系说明
@@ -247,20 +247,25 @@ static float temp_statue;
  * 3. 详细文档参考：gimbal_aim_optimizer.md
  */
 
-static float pitch_i_term = 0.0f;
-static float pitch_last_err = 0.0f;
-static float delta_theta = 0.0f;
 #define PITCH_VISION_KI 10.0f
 #define PITCH_VISION_DT 0.002f
 #define PITCH_I_LIMIT 0.9f
 #define PITCH_ERR_INT_THRESH 0.03f
 
-static float time_tt; //大yaw转动计时
-static float time_tick_; //小yaw转动计时
 
-// ? 我注释呢
+// 该函数是云台系统的核心控制入口，负责协调数据流向和电机控制逻辑
 static void GimbalSessionStart()
 {
+#if (REMOTE_CONTROL_DEBUG == ON)
+    vision_l_yaw_tar = gimbal_cmd_recv.yaw + YAW_L_INIT_ANGLE;          // 遥控器输入转化为目标角度
+    vision_l_pitch_tar = gimbal_cmd_recv.pitch + PITCH_L_INIT_ANGLE;    // 遥控器输入转化为目标角度
+#else
+    static float pitch_i_term = 0.0f;
+    static float pitch_last_err = 0.0f;
+    static float delta_theta = 0.0f;
+    static float time_tt;                       //大yaw转动计时
+    static float time_tick_;                    //小yaw转动计时
+
     static float time, last_time, diff_time, time_T, sint, cnt;
 
     time = DWT_GetTimeline_ms();
@@ -323,6 +328,7 @@ static void GimbalSessionStart()
     }
     gimbal_cmd_recv.gimbal_angle = Gimbal_T;
     last_time = time;
+#endif // REMOTE_CONTROL_DEBUG
 }
 
 /**
@@ -388,37 +394,36 @@ void GimbalTask()
         break;
     // 使用陀螺仪的反馈,底盘根据yaw电机的offset跟随云台或视觉模式采用
     case GIMBAL_GYRO_MODE: // 后续只保留此模式
-        // DJIMotorEnable(yaw_l_motor);
-        // DJIMotorEnable(pitch_l_motor);
-        // DJIMotorChangeFeed(yaw_l_motor, ANGLE_LOOP, OTHER_FEED);
-        // DJIMotorChangeFeed(yaw_r_motor, ANGLE_LOOP, OTHER_FEED);
-        // DJIMotorChangeFeed(pitch_l_motor, ANGLE_LOOP, OTHER_FEED);
-        // DJIMotorChangeFeed(pitch_r_motor, ANGLE_LOOP, OTHER_FEED);
-        // DJIMotorSetRef(yaw_l_motor, gimbal_cmd_recv.yaw); // yaw和pitch会在robot_cmd中处理好多圈和单圈
-        // DJIMotorSetRef(pitch_l_motor, gimbal_cmd_recv.pitch);
-        DJIMotorStop(yaw_l_motor);
-        DJIMotorStop(pitch_l_motor);
-        DJIMotorStop(yaw_r_motor);
-        DJIMotorStop(pitch_r_motor);
+        DJIMotorEnable(yaw_l_motor);
+        DJIMotorEnable(pitch_l_motor);
+        DJIMotorChangeFeed(yaw_l_motor, ANGLE_LOOP, OTHER_FEED);
+        DJIMotorChangeFeed(yaw_r_motor, ANGLE_LOOP, OTHER_FEED);
+        DJIMotorChangeFeed(pitch_l_motor, ANGLE_LOOP, OTHER_FEED);
+        DJIMotorChangeFeed(pitch_r_motor, ANGLE_LOOP, OTHER_FEED);
+        DJIMotorSetRef(yaw_l_motor, gimbal_cmd_recv.yaw); // yaw和pitch会在robot_cmd中处理好多圈和单圈
+        DJIMotorSetRef(pitch_l_motor, gimbal_cmd_recv.pitch);
+        // DJIMotorStop(yaw_l_motor);
+        // DJIMotorStop(pitch_l_motor);
+        // DJIMotorStop(yaw_r_motor);
+        // DJIMotorStop(pitch_r_motor);
         break;
     // 云台自由模式,使用编码器反馈,底盘和云台分离,仅云台旋转,一般用于调整云台姿态(英雄吊射等)/能量机关
     case GIMBAL_FREE_MODE: // 后续删除,或加入云台追地盘的跟随模式(响应速度更快)
-        // DJIMotorEnable(yaw_l_motor);
-        // DJIMotorEnable(pitch_l_motor);
-        // DJIMotorEnable(yaw_r_motor);
-        // DJIMotorEnable(pitch_r_motor);
-        // DJIMotorChangeFeed(yaw_l_motor, ANGLE_LOOP, MOTOR_FEED);
-        // DJIMotorChangeFeed(yaw_r_motor, ANGLE_LOOP, MOTOR_FEED);
-        // DJIMotorChangeFeed(pitch_l_motor, ANGLE_LOOP, MOTOR_FEED);
-        // DJIMotorChangeFeed(pitch_r_motor, ANGLE_LOOP, MOTOR_FEED);
-        // // DJIMotorSetRef(yaw_l_motor, -gimbal_cmd_recv.yaw + YAW_L_INIT_ANGLE); // yaw和pitch会在robot_cmd中处理好多圈和单圈
-        // // DJIMotorSetRef(pitch_l_motor, pitch_r_angle);
+        DJIMotorEnable(yaw_l_motor);
+        DJIMotorEnable(pitch_l_motor);
+        DJIMotorEnable(yaw_r_motor);
+        DJIMotorEnable(pitch_r_motor);
+        DJIMotorChangeFeed(yaw_l_motor, ANGLE_LOOP, MOTOR_FEED);
+        DJIMotorChangeFeed(yaw_r_motor, ANGLE_LOOP, MOTOR_FEED);
+        DJIMotorChangeFeed(pitch_l_motor, ANGLE_LOOP, MOTOR_FEED);
+        DJIMotorChangeFeed(pitch_r_motor, ANGLE_LOOP, MOTOR_FEED);
+        DJIMotorSetRef(yaw_l_motor, gimbal_cmd_recv.yaw + YAW_L_INIT_ANGLE); // yaw和pitch会在robot_cmd中处理好多圈和单圈
+        DJIMotorSetRef(pitch_l_motor, gimbal_cmd_recv.pitch + PITCH_L_INIT_ANGLE);
         // DJIMotorSetRef(yaw_r_motor, -gimbal_cmd_recv.yaw + YAW_R_INIT_ANGLE);
-        // DJIMotorSetRef(pitch_r_motor, -gimbal_cmd_recv.pitch + PITCH_R_INIT_SET_ANGLE - 5.0);
-        DJIMotorStop(yaw_l_motor);
-        DJIMotorStop(pitch_l_motor);
-        DJIMotorStop(yaw_r_motor);
-        DJIMotorStop(pitch_r_motor);
+        // DJIMotorStop(yaw_l_motor);
+        // DJIMotorStop(pitch_l_motor);
+        // DJIMotorStop(yaw_r_motor);
+        // DJIMotorStop(pitch_r_motor);
         break;
     // 云台自瞄模式，自瞄计算使用相对母云台角度，发送时转换为实际角度
     case GIMBAL_VISION: 

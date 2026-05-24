@@ -120,7 +120,7 @@ void ShootInit()
     Motor_Init_Config_s loader_config = {
         .can_init_config = {
             .can_handle = &hcan1,
-            .tx_id = 1,     // * 之前是8
+            .tx_id = 8,     // * 之前是8
         },
         .controller_param_init_config = {
             .angle_PID = {
@@ -185,8 +185,8 @@ void ShootTask()
     // VisionBulletData(20,output[0]); // ? 将弹速数据发送给master_process模块，后面有函数修改output为实际电流值？
     if(vision_gimbal_data_recv.vision_statue == GIMBAL_VISION)
     {
-        // shoot_cmd_recv.shoot_mode = SHOOT_ON;
-        // shoot_cmd_recv.friction_mode = FRICTION_ON;
+        shoot_cmd_recv.shoot_mode = SHOOT_ON;
+        shoot_cmd_recv.friction_mode = FRICTION_ON;
         // // if((vision_gimbal_data_recv.Vision_set_r_yaw - vision_gimbal_data_recv.yaw_r_motor_angle) < 1.0 && vision_recv_data_2_shoot.target_state == TRACKING 
         // //  && (vision_gimbal_data_recv.Vision_set_r_pitch - vision_gimbal_data_recv.pitch_r_motor_angle) < 0.8)
         // if((vision_gimbal_data_recv.Vision_set_r_yaw - vision_gimbal_data_recv.yaw_r_motor_angle) < 0.8 && vision_recv_data_2_shoot_r.target_state == TRACKING )
@@ -206,8 +206,8 @@ void ShootTask()
         DJIMotorStop(shoot_l.loader);
         DJIMotorStop(shoot_r.loader);
     }
-    else // 恢复运行
-    {
+    else // 恢复运行 
+        {
         DJIMotorEnable(shoot_l.friction_l);
         DJIMotorEnable(shoot_l.friction_r);
         DJIMotorEnable(shoot_r.friction_l);
@@ -297,10 +297,18 @@ void ShootTask()
         // 拨盘反转,对速度闭环,后续增加卡弹检测(通过裁判系统剩余热量反馈和电机电流)
         // 也有可能需要从switch-case中独立出来
         case LOAD_REVERSE:      //检测到卡弹的处理
+        #define TEST
+        #ifdef TEST
+            DJIMotorOuterLoop(shoot_l.loader, SPEED_LOOP);                                              // 切换到速度环
+            DJIMotorOuterLoop(shoot_r.loader, SPEED_LOOP);
+            DJIMotorSetRef(shoot_l.loader, -shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8); // 设定速度
+            DJIMotorSetRef(shoot_r.loader, -shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8); // 设定速度
+        #else
             DJIMotorOuterLoop(shoot_l.loader, SPEED_LOOP);                                              // 切换到速度环
             DJIMotorOuterLoop(shoot_r.loader, SPEED_LOOP);
             // TODO 貌似没写完
             // ...
+        #endif
             break;
         default:
             while (1)

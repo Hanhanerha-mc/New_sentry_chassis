@@ -58,7 +58,7 @@ BMI088Instance *bmi088_test; // 云台IMU
 BMI088_Data_t bmi088_data;
 void RobotCMDInit()
 {
-    // rc_data = RemoteControlInit(&huart5);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
+    rc_data = RemoteControlInit(&huart5);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
     vision_recv_data_ = VisionInit(&huart10); // 视觉通信串口
     radar_data = CmdVelControlInit(&huart7); // 导航控制
     referee_recv_data = RefereeDataTransportInit(&huart1);
@@ -127,7 +127,7 @@ static void CalcOffsetAngle()
  *
  */
 static void RemoteControlSet()
-{
+{//云台自瞄模
     // TODO 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据? 好像不需要一直循环吧
     // * TYPE是之前或现在的数据，用于按键逻辑判断
     if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下],底盘跟随云台
@@ -140,11 +140,16 @@ static void RemoteControlSet()
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
     }
+    else if(switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上],底盘跟随云台,云台自瞄模式{
+    {   
+        chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+        gimbal_cmd_send.gimbal_mode = GIMBAL_VISION; 
+    }
     // 云台参数,确定云台控制数据
     if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中],视觉模式
     {
         // TODO 待添加,视觉会发来和目标的误差,同样将其转化为total angle的增量进行控制
-
+          //云台自瞄模式
         // ...
     }
     // 左侧开关状态为[下],或视觉未识别到目标,纯遥控器拨杆控制
@@ -154,6 +159,7 @@ static void RemoteControlSet()
         gimbal_cmd_send.yaw += 0.002f * (float)rc_data[TEMP].rc.rocker_l_;
         gimbal_cmd_send.pitch += 0.0005f * (float)rc_data[TEMP].rc.rocker_l1;
         LIMIT_MIN_MAX(gimbal_cmd_send.pitch,PITCH_L_SEND_MIN,PITCH_L_SEND_MAX); // 限位
+        LIMIT_MIN_MAX(gimbal_cmd_send.yaw, YAW_L_SEND_MIN, YAW_L_SEND_MAX); // 限位
     }
     // 云台软件限位
 
@@ -168,17 +174,27 @@ static void RemoteControlSet()
         ; // 弹舱舵机控制,待添加servo_motor模块,关闭
 
     // 摩擦轮控制,拨轮向上打为负,向下为正
-    if (rc_data[TEMP].rc.dial < -100) // 向上超过100,打开摩擦轮
+    if (abs(rc_data[TEMP].rc.dial) > 100) // 向上超过100,打开摩擦轮
         shoot_cmd_send.friction_mode = FRICTION_ON;
     else
         shoot_cmd_send.friction_mode = FRICTION_OFF;
+
     // 拨弹控制,遥控器固定为一种拨弹模式,可自行选择
-    if (rc_data[TEMP].rc.dial < -500)
+    if (rc_data[TEMP].rc.dial < -500) {
+        shoot_cmd_send.shoot_mode = SHOOT_ON;
         shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
-    else
+    }
+    else if (rc_data[TEMP].rc.dial > 200) 
+    {
+        shoot_cmd_send.shoot_mode = SHOOT_ON;
+        shoot_cmd_send.load_mode = LOAD_REVERSE;
+    }
+    else {
+        shoot_cmd_send.shoot_mode = SHOOT_OFF;
         shoot_cmd_send.load_mode = LOAD_STOP;
+    }
     // 射频控制,固定每秒1发,后续可以根据左侧拨轮的值大小切换射频,
-    shoot_cmd_send.shoot_rate = 4;
+    shoot_cmd_send.shoot_rate = 12;
 }
 
 /**
@@ -370,14 +386,11 @@ void RobotCMDTask()
     //     MouseKeySet();
     // else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 控器左侧开关状态为[中],视觉导航模式
     //     VisionRadaControlSet();
-#define REMOTE_CONTROL_DEBUG
-#ifdef REMOTE_CONTROL_DEBUG
+#if (REMOTE_CONTROL_DEBUG == ON)         // 在CMake中定义REMOTE_CONTROL_DEBUG宏以启用遥控器调试模式,否则默认使用视觉导航模式
     RemoteControlSet();
-#endif // REMOTE_CONTROL_DEBUG 
-
-#ifdef VISION_NAVIGATION
+#else
     VisionRadaControlSet();
-#endif // VISION_NAVIGATION
+#endif // REMOTE_CONTROL_DEBUG == ON
 
     // EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
 

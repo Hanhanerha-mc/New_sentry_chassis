@@ -7,6 +7,8 @@ cmake_minimum_required(VERSION 3.22)
 # User is free to modify the file as much as necessary
 #
 
+add_compile_definitions(REMOTE_CONTROL_DEBUG=ON)
+
 # Add sources to executable
 file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/SEGGER/*.c"

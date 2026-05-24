@@ -32,10 +32,13 @@
 #define PITCH_MAX_ANGLE -117.0f           // 云台竖直方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
 #define PITCH_MIN_ANGLE -165.0f           // 云台竖直方向最小角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
 
-#define PITCH_L_SEND_MAX 47.0f // pitch最大发送值,单位:度
-#define PITCH_L_SEND_MIN -1.0f // pitch最小发送值,单位:度
+#define PITCH_L_SEND_MAX 8.0f // pitch最大发送值,单位:度
+#define PITCH_L_SEND_MIN -30.0f // pitch最小发送值,单位:度
 #define PITCH_R_SEND_MAX -117.0f // pitch最大发送值,单位:度
 #define PITCH_R_SEND_MIN -165.0f // pitch最小发送值,单位:度
+
+#define YAW_L_SEND_MIN -62.0f // yaw最小发送值,单位:度
+#define YAW_L_SEND_MAX 63.0f // yaw最大发送值,单位:度
 
 // 发射参数
 #define ONE_BULLET_DELTA_ANGLE 60    // 发射一发弹丸拨盘转动的距离,由机械设计图纸给出

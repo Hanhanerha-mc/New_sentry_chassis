@@ -282,7 +282,7 @@ void PIDInit(PIDInstance *pid, PID_Init_Config_s *config)
  * @param[in]      期望值
  * @retval         返回空
  */
- #define DEBUG_PID
+//  #define DEBUG_PID
 float PIDCalculate(PIDInstance *pid, float measure, float ref)
 {
 #ifdef DEBUG_PID
