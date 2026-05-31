@@ -32,13 +32,13 @@
 #define PITCH_MAX_ANGLE -117.0f           // 云台竖直方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
 #define PITCH_MIN_ANGLE -165.0f           // 云台竖直方向最小角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
 
-#define PITCH_L_SEND_MAX 8.0f // pitch最大发送值,单位:度
-#define PITCH_L_SEND_MIN -30.0f // pitch最小发送值,单位:度
+#define PITCH_L_SEND_MAX 20.0f // pitch最大发送值,单位:度
+#define PITCH_L_SEND_MIN -27.0f // pitch最小发送值,单位:度
 #define PITCH_R_SEND_MAX -117.0f // pitch最大发送值,单位:度
 #define PITCH_R_SEND_MIN -165.0f // pitch最小发送值,单位:度
 
-#define YAW_L_SEND_MIN -62.0f // yaw最小发送值,单位:度
-#define YAW_L_SEND_MAX 63.0f // yaw最大发送值,单位:度
+#define YAW_L_SEND_MIN -62.5f // yaw最小发送值,单位:度
+#define YAW_L_SEND_MAX 62.5f // yaw最大发送值,单位:度
 
 // 发射参数
 #define ONE_BULLET_DELTA_ANGLE 60    // 发射一发弹丸拨盘转动的距离,由机械设计图纸给出
@@ -59,6 +59,7 @@
 //这是新旧遥控的定义,根据使用的遥控器选择定义,并在robot_cmd模块中进行对应修改,如果不用新遥控则注释掉Remote_New的定义，且要注意遥控器数据不同
 #define Remote_New 1
 #define Remote_Old 0
+#define Remote_MAX 660.0f // 遥控器摇杆最大值,根据实际遥控器调整
 
 // 检查是否出现主控板定义冲突,只允许一个开发板定义存在,否则编译会自动报错
 #if (defined(ONE_BOARD) && defined(CHASSIS_BOARD)) || \
@@ -111,10 +112,10 @@ typedef enum
 // 云台模式设置
 typedef enum
 {
-    GIMBAL_ZERO_FORCE = 0, // 电流零输入
-    GIMBAL_FREE_MODE,      // 云台自由运动模式,即与底盘分离(底盘此时应为NO_FOLLOW)反馈值为电机total_angle;似乎可以改为全部用IMU数据?
-    GIMBAL_GYRO_MODE,      // 云台陀螺仪反馈模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
-    GIMBAL_VISION,         // 云台自瞄模式
+    GIMBAL_ZERO_FORCE = 0,          // 电流零输入
+    GIMBAL_FREE_MODE,               // 云台自由运动模式,即与底盘分离,反馈值为IMU数据
+    GIMBAL_FOLLOW_CHASSIS_YAW,      // 跟随模式，云台叠加角度环控制
+    GIMBAL_VISION,                  // 云台自瞄模式
 } gimbal_mode_e;
 
 // 发射模式设置
@@ -162,6 +163,7 @@ typedef struct
     float vx;           // 前进方向速度
     float vy;           // 横移方向速度
     float wz;           // 旋转速度
+    float gimbal_yaw;   // 云台角度
     float offset_angle; // 底盘和归中位置的夹角
     chassis_mode_e chassis_mode;
     int chassis_speed_buff;
@@ -174,10 +176,11 @@ typedef struct
 // 状态机结构体
 typedef struct
 { // 云台角度控制
+    float dm_yaw; // 云台大yaw的目标值
     float yaw;
     float pitch;
     float chassis_rotate_wz;
-    float gimbal_angle; //母云台角度
+    float gimbal_angle; //母云台角度，状态机
 
     double yaw_vel; //yaw 前馈
     double pitch_vel; //pitch 前馈
@@ -240,7 +243,7 @@ typedef struct
     uint8_t rest_heat;           // 剩余枪口热量
     Bullet_Speed_e bullet_speed; // 弹速限制
     Enemy_Color_e enemy_color;   // 0 for blue, 1 for red
-
+    // attitude_t *chassis_imu_data;
 } Chassis_Upload_Data_s;
 
 // 云台反馈数据,由gimbal订阅(无注释)

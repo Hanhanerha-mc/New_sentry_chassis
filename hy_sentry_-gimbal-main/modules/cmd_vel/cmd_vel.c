@@ -94,7 +94,6 @@ static void CmdVelControlRxCallback()
 {
     DaemonReload(cmd_vel_daemo_instance);   //先喂狗
     Cmd_vel_Parse(cmd_vel_usart_instance->recv_buff);   //进行协议解析
-
 }
 
 /**

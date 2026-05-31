@@ -25,6 +25,7 @@
 #include "arm_math.h"
 #include "cmd_vel.h"
 #include <math.h>
+#include "can_comm.h"
 
 /* 根据robot_def.h中的macro自动计算的参数 */
 #define WHEEL_LINE_RATION (1 / (180.0f * REDUCTION_RATIO_WHEEL)) * PI * RADIUS_WHEEL   //将舵轮电机转速转换为底盘线速度的比例
@@ -44,6 +45,7 @@
 #define VWHEEL_2_DPS(v) (v * REDUCTION_RATIO_WHEEL * RAD_2_DEGREE / RADIUS_WHEEL * 1000.0f)
 
 /* 底盘应用包含的模块和信息存储,底盘是单例模式,因此不需要为底盘建立单独的结构体 */
+#define CHASSIS_BOARD
 #ifdef CHASSIS_BOARD // 如果是底盘板,使用板载IMU获取底盘转动角速度
 #include "can_comm.h"
 #include "ins_task.h"
@@ -372,41 +374,41 @@ void ChassisInit()
     };
 
     //目前找到了之前一直卡住的问题，就是不要乱改rxid和txid ，最好使用可用的id，其他的id不要乱改，要仔细查看达妙官方手册
-    Motor_Init_Config_s DMmotor_Motor_Config = {
-        .controller_setting_init_config.angle_feedback_source = OTHER_FEED,
-        .controller_setting_init_config.speed_feedback_source = MOTOR_FEED,
-        .controller_setting_init_config.close_loop_type = ANGLE_LOOP,
-        .controller_setting_init_config.feedback_reverse_flag = FEEDBACK_DIRECTION_NORMAL,
-        .controller_setting_init_config.feedforward_flag = SPEED_FEEDFORWARD,
-        .controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
-        .controller_setting_init_config.outer_loop_type = ANGLE_LOOP,
-        .can_init_config.can_handle = &hcan1,
-        // .can_init_config.can_module_callback = &DMMotorLostCallback,
-        // .can_init_config.id = (void *)0x00, 
-        .can_init_config.rx_id = 0x10, 
-        .can_init_config.tx_id = 0x20F,
+    // Motor_Init_Config_s DMmotor_Motor_Config = {
+    //     .controller_setting_init_config.angle_feedback_source = OTHER_FEED,
+    //     .controller_setting_init_config.speed_feedback_source = MOTOR_FEED,
+    //     .controller_setting_init_config.close_loop_type = ANGLE_LOOP,
+    //     .controller_setting_init_config.feedback_reverse_flag = FEEDBACK_DIRECTION_NORMAL,
+    //     .controller_setting_init_config.feedforward_flag = SPEED_FEEDFORWARD,
+    //     .controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
+    //     .controller_setting_init_config.outer_loop_type = ANGLE_LOOP,
+    //     .can_init_config.can_handle = &hcan1,
+    //     // .can_init_config.can_module_callback = &DMMotorLostCallback,
+    //     // .can_init_config.id = (void *)0x00, 
+    //     .can_init_config.rx_id = 0x10, 
+    //     .can_init_config.tx_id = 0x20F,
 
-        .controller_param_init_config = {
+    //     .controller_param_init_config = {
 
-            .angle_PID = {
-                .Kp = 0.5,
-                .Ki = 0,
-                .Kd = 0,
-                .MaxOut = 30,
-                .IntegralLimit = 15,
-                .Improve = PID_Integral_Limit | PID_DerivativeFilter
-            },
+    //         .angle_PID = {
+    //             .Kp = 0.5,
+    //             .Ki = 0,
+    //             .Kd = 0,
+    //             .MaxOut = 30,
+    //             .IntegralLimit = 15,
+    //             .Improve = PID_Integral_Limit | PID_DerivativeFilter
+    //         },
 
-            .speed_PID = {
-                .Kp = 5,
-                .Ki = 0.1,
-                .Kd = 0,
-                .MaxOut = 50,
-                .IntegralLimit = 15,
-                .IntegralLimit = PID_Integral_Limit | PID_DerivativeFilter
-            }
-        }
-    };
+    //         .speed_PID = {
+    //             .Kp = 5,
+    //             .Ki = 0.1,
+    //             .Kd = 0,
+    //             .MaxOut = 50,
+    //             .IntegralLimit = 15,
+    //             .IntegralLimit = PID_Integral_Limit | PID_DerivativeFilter
+    //         }
+    //     }
+    // };
 
     // First_GM6020_motor  = DJIMotorInit(&chassis_first_GM6020_motor_config);
     // Second_GM6020_motor = DJIMotorInit(&chassis_second_GM6020_motor_config);
@@ -416,17 +418,15 @@ void ChassisInit()
     motor_lf = DJIMotorInit(&chassis_second_M3508_motor_config);
     motor_lb = DJIMotorInit(&chassis_third_M3508_motor_config);
     motor_rb = DJIMotorInit(&chassis_fourth_M3508_motor_config);
-    Gimbal_Base = DMMotorInit(&DMmotor_Motor_Config);
+    // Gimbal_Base = DMMotorInit(&DMmotor_Motor_Config);
 
     ChassisHandle_Deliver_Config();
 
     // 发布订阅初始化,如果为双板,则需要can comm来传递消息
 #ifdef CHASSIS_BOARD
-    Chassis_IMU_data = INS_Init(); // 底盘IMU初始化
- 
     CANComm_Init_Config_s comm_conf = {
         .can_config = {
-            .can_handle = &hcan2,
+            .can_handle = &hcan1,
             .tx_id = 0x311,
             .rx_id = 0x312,
         },
@@ -434,6 +434,7 @@ void ChassisInit()
         .send_data_len = sizeof(Chassis_Upload_Data_s),
     };
     chasiss_can_comm = CANCommInit(&comm_conf); // can comm初始化
+    CANCommSend(chasiss_can_comm, (uint8_t *)&chassis_feedback_data); // 发送底盘反馈数据的接口,可以在底盘控制函数中调用
 #endif                                          // CHASSIS_BOARD
 
 #ifdef ONE_BOARD // 单板控制整车,则通过pubsub来传递消息
@@ -620,14 +621,14 @@ static void YawAngleCalculate()
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {   
-    chassis_feedback_data.chassis_imu_data = Chassis_IMU_data;
+    // chassis_feedback_data.chassis_imu_data = Chassis_IMU_data;
     YawTotalAngle = gimbal_imu_recv_data->YawTotalAngle;
     YawAngleCalculate();    //yaw电机总角度计算
 
     // 后续增加没收到消息的处理(双板的情况)
     // 获取新的控制信息
 #ifdef ONE_BOARD
-    SubGetMessage(chassis_sub, &chassis_cmd_recv);
+    // SubGetMessage(chassis_sub, &chassis_cmd_recv);
 #endif
 #ifdef CHASSIS_BOARD
     chassis_cmd_recv = *(Chassis_Ctrl_Cmd_s *)CANCommGet(chasiss_can_comm);

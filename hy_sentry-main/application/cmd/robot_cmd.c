@@ -101,7 +101,7 @@ static void CalcOffsetAngle()
     SubGetMessage(GimbalBase_sub, &yaw_total_angle);
     SubGetMessage(chassis_feed_sub, &chassis_fetch_data);
     // ?
-    chassis_cmd_send.offset_angle = chassis_fetch_data.chassis_imu_data->Yaw;
+    // chassis_cmd_send.offset_angle = chassis_fetch_data.chassis_imu_data->Yaw;
     // chassis_cmd_send.offset_angle = yaw_total_angle - chassis_fetch_data.chassis_imu_data->Yaw;
 }
 
@@ -239,7 +239,7 @@ static void RemoteControlSet()
     else
         shoot_cmd_send.load_mode = LOAD_STOP;
     // 射频控制,固定每秒1发,后续可以根据左侧拨轮的值大小切换射频,
-    shoot_cmd_send.shoot_rate = 8;
+    shoot_cmd_send.shoot_rate = 16;
 }
 
 /**

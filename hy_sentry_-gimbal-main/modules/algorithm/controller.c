@@ -62,6 +62,24 @@ static void f_Integral_Limit(PIDInstance *pid)
     }
 }
 
+// 自适应比例
+static void f_ADAPTIVE_Proportional(PIDInstance *pid)
+{
+    // TODO 未来改成通用版本
+    if (pid->Measure > pid->Mmax) {
+        pid->Calc_Kp = pid->Pmin;
+    }
+    else if (pid->Measure < pid->Mmin) {
+        pid->Calc_Kp = pid->Kp;
+    }
+    else {
+        // 线性插值计算Kp
+        pid->Calc_Kp = pid->Pmin + (pid->Kp - pid->Pmin) * (pid->Mmax - pid->Measure) / (pid->Mmax - pid->Mmin);
+    }
+}
+
+
+
 // 微分先行(仅使用反馈值而不计参考输入的微分)
 static void f_Derivative_On_Measurement(PIDInstance *pid)
 {
@@ -165,8 +183,14 @@ float PIDCalculate(PIDInstance *pid, float measure, float ref)
     // 如果在死区外,则计算PID
     if (abs(pid->Err) > pid->DeadBand)
     {
+        // 自适应比例
+        if (pid->Improve & PID_ADAPTIVE_Proportional) {
+            f_ADAPTIVE_Proportional(pid);
+            pid->Pout = pid->Calc_Kp * pid->Err;
+        } else {
+            pid->Pout = pid->Kp * pid->Err;
+        }
         // 基本的pid计算,使用位置式
-        pid->Pout = pid->Kp * pid->Err;
         pid->ITerm = pid->Ki * pid->Err * pid->dt;
         pid->Dout = pid->Kd * (pid->Err - pid->Last_Err) / pid->dt;
 

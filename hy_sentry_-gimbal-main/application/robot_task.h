@@ -15,6 +15,8 @@
 #include "HT04.h"
 #include "buzzer.h"
 #include "dm_imu.h"
+#include "dmmotor.h"
+#include "bsp_usart.h"
 
 #include "bsp_log.h"
 
@@ -36,6 +38,7 @@ void StartUITASK(void const *argument);
  */
 void OSTaskInit()
 {
+    
     osThreadDef(instask, StartINSTASK, osPriorityAboveNormal, 0, 1024);
     insTaskHandle = osThreadCreate(osThread(instask), NULL); // 由于是阻塞读取传感器,为姿态解算设置较高优先级,确保以1khz的频率执行
     // // 后续修改为读取传感器数据准备好的中断处理,
@@ -53,8 +56,7 @@ void OSTaskInit()
     uiTaskHandle = osThreadCreate(osThread(uitask), NULL);
 
     // HTMotorControlInit(); // 没有注册HT电机则不会执行
-    // //未知函数？
-    // DMMotorControlInit();
+    DMMotorControlInit(); // 没有注册达妙电机则不会执行
 }
 
 __attribute__((noreturn)) void StartINSTASK(void const *argument)
@@ -71,7 +73,7 @@ __attribute__((noreturn)) void StartINSTASK(void const *argument)
         ins_dt = DWT_GetTimeline_ms() - ins_start;
         if (ins_dt > 1)
             LOGERROR("[freeRTOS] INS Task is being DELAY! dt = [%f]", &ins_dt);
-        VisionSend(); // 解算完成后发送视觉数据,但是当前的实现不太优雅,后续若添加硬件触发需要重新考虑结构的组织
+        VisionSend(); //        解算完成后发送视觉数据,但是当前的实现不太优雅,后续若添加硬件触发需要重新考虑结构的组织
         osDelay(1);
     }
 }
@@ -89,6 +91,7 @@ __attribute__((noreturn)) void StartMOTORTASK(void const *argument)
         if (motor_dt > 1)
             LOGERROR("[freeRTOS] MOTOR Task is being DELAY! dt = [%f]", &motor_dt);
         osDelay(1);
+
     }
 }
 

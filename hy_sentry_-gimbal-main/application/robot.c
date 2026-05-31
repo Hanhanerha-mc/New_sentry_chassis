@@ -44,8 +44,8 @@ void RobotInit()
     imu_init(0x01,0x11,&hfdcan3);
 #if defined(ONE_BOARD) || defined(GIMBAL_BOARD)
     RobotCMDInit();             // 一些通信的结构体的初始化，还有双板通信的初始化
-    GimbalInit();
     ShootInit();
+    GimbalInit();
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)

@@ -74,48 +74,6 @@ void ShootInit()
     // friction_Ll_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     shoot_l.friction_r = DJIMotorInit(&friction_Ll_config);
 
-    /*注释双云台的另一部分*/
-
-    // // 右云台发射机构初始化摩擦轮
-    // Motor_Init_Config_s friction_Rl_config = {
-    //     .can_init_config = {
-    //         .can_handle = &hcan2,
-    //     },
-    //     .controller_param_init_config = {
-    //         .speed_PID = {
-    //             .Kp = 20, // 20
-    //             .Ki = 1, // 1
-    //             .Kd = 0,
-    //             .Improve = PID_Integral_Limit,
-    //             .IntegralLimit = 10000,
-    //             .MaxOut = 15000,
-    //         },
-    //         .current_PID = {
-    //             .Kp = 0.7, // 0.7
-    //             .Ki = 0.1, // 0.1
-    //             .Kd = 0,
-    //             .Improve = PID_Integral_Limit,
-    //             .IntegralLimit = 10000,
-    //             .MaxOut = 15000,
-    //         },
-    //     },
-    //     .controller_setting_init_config = {
-    //         .angle_feedback_source = MOTOR_FEED,
-    //         .speed_feedback_source = MOTOR_FEED,
-
-    //         .outer_loop_type = SPEED_LOOP,
-    //         .close_loop_type = SPEED_LOOP | CURRENT_LOOP,
-    //         .motor_reverse_flag = MOTOR_DIRECTION_REVERSE,
-    //     },
-    //     .motor_type = M3508};
-    // friction_Rl_config.can_init_config.tx_id = 3,
-    // shoot_r.friction_l = DJIMotorInit(&friction_Rl_config);
-
-    // friction_Rl_config.can_init_config.tx_id = 4; // 右摩擦轮,改txid和方向就行
-    // friction_Rl_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
-    // shoot_r.friction_r = DJIMotorInit(&friction_Rl_config);
-
-
     // 云台发射机构初始化拨盘电机
     Motor_Init_Config_s loader_config = {
         .can_init_config = {

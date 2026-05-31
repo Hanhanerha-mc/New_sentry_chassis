@@ -125,6 +125,7 @@ uint8_t CANTransmit(CANInstance *_instance, float timeout)
         busy_count++;
         return 0;
     }
+    LOGINFO("[bsp_can] Transmited.");
     return 1; // 发送成功
 }
 
@@ -165,6 +166,7 @@ static void CANFIFOxCallback(CAN_HandleTypeDef *_hcan, uint32_t fifox)
                 return;
             }
         }
+        LOGINFO("REcv.");
     }
 }
 

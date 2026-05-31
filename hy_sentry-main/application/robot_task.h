@@ -52,8 +52,8 @@ void OSTaskInit()
     osThreadDef(uitask, StartUITASK, osPriorityNormal, 0, 512);
     uiTaskHandle = osThreadCreate(osThread(uitask), NULL);
 
-    HTMotorControlInit(); // 没有注册HT电机则不会执行
-    DMMotorControlInit();
+    // HTMotorControlInit(); // 没有注册HT电机则不会执行
+    // DMMotorControlInit();
 }
 
 __attribute__((noreturn)) void StartINSTASK(void const *argument)

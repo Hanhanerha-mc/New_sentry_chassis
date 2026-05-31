@@ -95,7 +95,6 @@ void CANSetDLC(CANInstance *_instance, uint8_t length);
  * @param fdhcan_send_data 要修改长度的can实例 
  * @param length    设定长度
  */
-uint8_t fdcanx_send_data(FDCAN_HandleTypeDef *hfdcan, uint16_t id, uint8_t *data, uint32_t len);
 uint8_t fdcanx_receive(FDCAN_HandleTypeDef *hfdcan, uint8_t *buf);
 void fdcan1_rx_callback(void);
 void fdcan2_rx_callback(void);

@@ -10,6 +10,7 @@
 #ifndef CMD_VEL_H
 #define CMD_VEL_H
 
+#include "robot_def.h"
 #include "stdint.h"
 #include "bsp_usart.h"
 #include "daemon.h"
@@ -27,19 +28,17 @@ typedef struct
 
 typedef enum
 {
-    CHASSIS_ROTATE_S = 0,
-    CHASSIS_NO_FOLLOW_S = 1,
-    CHASSIS_FOLLOW_GIMBAL_YAW_S = 2,
-} Chassis_mode_t;
-
-typedef enum
-{
     REMOTE_MODE_S = 0,
     RADA_MODE_S = 1,
 } Chassis_State_t;
 
 typedef struct 
 {
+    float vx;
+    float vy;
+    float vz;
+    chassis_mode_e mode;
+    // ? 为什么要这样写
     Vector3 linear;     //线速度
     Vector3 angular;    //角速度
 } Radar_Data;

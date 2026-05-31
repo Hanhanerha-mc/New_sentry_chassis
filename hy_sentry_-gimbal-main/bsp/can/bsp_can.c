@@ -182,11 +182,7 @@ CANInstance *CANRegister(CAN_Init_Config_s *config)
     instance->txconf.IdType = FDCAN_STANDARD_ID;  				// 使用标准id,扩展id则使用CAN_ID_EXT(目前没有需求)
     instance->txconf.TxFrameType = FDCAN_DATA_FRAME,    		// 发送数据帧
     instance->txconf.DataLength = FDCAN_DLC_BYTES_8,    		// 数据长度为8字节
-	instance->txconf.ErrorStateIndicator = FDCAN_ESI_ACTIVE,	// 兼容CAN2.0,错误状态指示器设为主动
-	instance->txconf.BitRateSwitch = FDCAN_BRS_OFF,         	// 兼容CAN2.0禁用位速率切换
-	instance->txconf.FDFormat = FDCAN_CLASSIC_CAN,          	// 使用经典CAN格式
-	instance->txconf.TxEventFifoControl = FDCAN_NO_TX_EVENTS,	// 不需要，禁用事件FIFO
-	instance->txconf.MessageMarker = 0;                     	// 不使用消息标记
+
 #else
     instance->txconf.StdId = config->tx_id; // 发送id
     instance->txconf.IDE = CAN_ID_STD;      // 使用标准id,扩展id则使用CAN_ID_EXT(目前没有需求)
@@ -206,30 +202,11 @@ CANInstance *CANRegister(CAN_Init_Config_s *config)
     return instance; // 返回can实例指针
 }
 
-uint8_t fdcanx_send_data(FDCAN_HandleTypeDef *hfdcan, uint16_t id, uint8_t *data, uint32_t len)
-{	
-	FDCAN_TxHeaderTypeDef TxHeader;
-	
-  TxHeader.Identifier = id;
-  TxHeader.IdType = FDCAN_STANDARD_ID;																// ��׼ID 
-  TxHeader.TxFrameType = FDCAN_DATA_FRAME;														// ����֡ 
-  TxHeader.DataLength = len << 16;																		// �������ݳ��� 
-  TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;										// ���ô���״ָ̬ʾ 								
-  TxHeader.BitRateSwitch = FDCAN_BRS_OFF;															// �������ɱ䲨���� 
-  TxHeader.FDFormat = FDCAN_CLASSIC_CAN;															// ��ͨCAN��ʽ 
-  TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;										// ���ڷ����¼�FIFO����, ���洢 
-  TxHeader.MessageMarker = 0x00; 			// ���ڸ��Ƶ�TX EVENT FIFO����ϢMaker��ʶ����Ϣ״̬����Χ0��0xFF                
-    
-  if(HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &TxHeader, data)!=HAL_OK) 
-		return 1;//����
-	return 0;	
-}
-
 uint8_t fdcanx_receive(FDCAN_HandleTypeDef *hfdcan, uint8_t *buf)
 {	
 	FDCAN_RxHeaderTypeDef fdcan_RxHeader;
   if(HAL_FDCAN_GetRxMessage(hfdcan,FDCAN_RX_FIFO0, &fdcan_RxHeader, buf)!=HAL_OK)
-		return 0;//��������
+		return 0;
   return fdcan_RxHeader.DataLength>>16;	
 }
 
@@ -278,7 +255,7 @@ void CANSetDLC(CANInstance *_instance, uint8_t length)
         	LOGERROR("[bsp_can] CAN DLC error! check your code or wild pointer");
         }
 
-    _instance->txconf.DataLength = length;
+    _instance->txconf.DataLength = ((uint32_t)length) << 16;
 }
 
 /* -----------------------belows are callback definitions--------------------------*/
@@ -342,21 +319,6 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 	{
 		FDCANFIFOxCallback(hfdcan, FDCAN_RX_FIFO0); // 调用我们自己写的函数来处理消息
 
-	}
-	if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET)
-  	{
-	if(hfdcan == &hfdcan1)
-	{
-		fdcan1_rx_callback();
-	}
-	if(hfdcan == &hfdcan2)
-	{
-		fdcan2_rx_callback();
-	}
-	if(hfdcan == &hfdcan3)
-	{
-		fdcan3_rx_callback();
-	}
 	}
 }
 
