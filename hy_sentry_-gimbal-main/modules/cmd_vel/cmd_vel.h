@@ -15,6 +15,7 @@
 #include "daemon.h"
 #include "bsp_log.h"
 #include "usart.h"
+#include "robot_def.h"
 
 #pragma pack(1)
 typedef struct 
@@ -27,8 +28,10 @@ typedef struct
 
 typedef struct 
 {
-    Vector3 linear;     //线速度
-    Vector3 angular;    //角速度
+    float vx;
+    float vy;
+    float vz;
+    chassis_mode_e mode;
 } Radar_Data;
 #pragma pack()
 

@@ -303,8 +303,6 @@ void rv2_trajectory_passin(rv2_recv_protocol_s *param1,float *param2)
 
     st.current_pitch=param2[1];
     st.current_yaw = param2[0];
-
-
 }
 
 void rv2_trajectory_calculate()

@@ -39,9 +39,9 @@ typedef struct
     float vz;
     chassis_mode_e mode;
     // ? 为什么要这样写
-    Vector3 linear;     //线速度
-    Vector3 angular;    //角速度
-} Radar_Data;
+    // Vector3 linear;     //线速度  
+    // Vector3 angular;    //角速度
+}Radar_Data;
 #pragma pack()
 
 /* ------------------------- Internal Data ----------------------------------- */

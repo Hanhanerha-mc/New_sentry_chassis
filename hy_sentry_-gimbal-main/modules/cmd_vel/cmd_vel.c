@@ -10,12 +10,18 @@
 
 #include "cmd_vel.h"
 #include "ins_task.h"
+#include "cmd_vel.h"
+#include <sys/_intsup.h>
 
-#define START_BYTE 0xAA
-#define END_BYTE 0x55
-#define CMD_VEL_CONTROL_FRAME_SIZE 27u  //导航接的buffer大小
+#define START_BYTE 0xFF
+#define END_BYTE 0x0D
+#define CMD_VEL_CONTROL_FRAME_SIZE 16u  //导航接的buffer大小
 #define INS_SIZE sizeof(attitude_t)
 
+static int testa = 0;
+static int testb = 0;
+static int testc = 0;
+static int testd = 0;
 static Radar_Data radar_ctrl;
 static uint8_t cmd_vel_init_flag;
 static uint8_t low_contr[CMD_VEL_CONTROL_FRAME_SIZE + INS_SIZE];
@@ -32,56 +38,58 @@ static attitude_T *Gimbal_imu_data; // 云台数据转发
  */
 static void Cmd_vel_Parse(const uint8_t *cmd_vel_buf)
 {
+    testa++;
     // 检查起始字节和结束字节
-    if(cmd_vel_buf[0] != START_BYTE || cmd_vel_buf[26] != END_BYTE)
+    if(cmd_vel_buf[0] != START_BYTE || cmd_vel_buf[15] != END_BYTE)
     {
+        testb++;
         LOGWARNING("[cmd_vel] Packet format error");
         // return;
     }
-
     // 计算校验和（前 25 字节）
     uint8_t checksum = 0;
-    for(int i = 0; i < 25; i++)
+    for(int i = 1; i <= 13; i++)
     {
         checksum ^= cmd_vel_buf[i];
     }
     
-    // if(checksum == cmd_vel_buf[25]) // 校验正确
-    // {
+    if(checksum == cmd_vel_buf[13]) // 校验正确
+    {
         // 解析数据改为在sentry_chassis项目，gimal只作转发
-        // memcpy(&radar_ctrl.linear.x, &cmd_vel_buf[1], sizeof(float));
-        // memcpy(&radar_ctrl.linear.y, &cmd_vel_buf[5], sizeof(float));
-        // memcpy(&radar_ctrl.linear.z, &cmd_vel_buf[9], sizeof(float));
-        // memcpy(&radar_ctrl.angular.x, &cmd_vel_buf[13], sizeof(float));
-        // memcpy(&radar_ctrl.angular.y, &cmd_vel_buf[17], sizeof(float));
-        // memcpy(&radar_ctrl.angular.z, &cmd_vel_buf[21], sizeof(float));
-
-        memcpy(&low_contr[0], cmd_vel_buf, 25);
-        memcpy(&low_contr[25], Gimbal_imu_data, sizeof(attitude_t));
-
-        low_contr[0]  = START_BYTE;
-
-        checksum = 0;
-
-        for(int i = 0; i < 65; i++)
-        {
-            checksum ^= low_contr[i];
-        }
+        // memcpy(&radar_ctrl.vx, &cmd_vel_buf[1], sizeof(float));
+        // memcpy(&radar_ctrl.vy, &cmd_vel_buf[5], sizeof(float));
+        // memcpy(&radar_ctrl.vz, &cmd_vel_buf[9], sizeof(float));
+        // memcpy(&radar_ctrl.chassis_mode_e, &cmd_vel_buf[13], sizeof(chassis_mode_e));
+        memcpy(&radar_ctrl, &cmd_vel_buf[1], 13);
+        testd++;
         
-        low_contr[65] = checksum;
-        low_contr[66] = END_BYTE;
+        // memcpy(&low_contr[0], cmd_vel_buf, 13);
+        // memcpy(&low_contr[13], Gimbal_imu_data, sizeof(attitude_t));
 
-        HAL_UART_Transmit_DMA(&huart1, low_contr, sizeof(low_contr));
+        // low_contr[0]  = START_BYTE;
 
-        LOGINFO("[cmd_vel] Parsed data: Linear x: %.6f, Linear y: %.6f, Linear z: %.6f, "
-                "Angular x: %.6f, Angular y: %.6f, Angular z: %.6f",
-                radar_ctrl.linear.x, radar_ctrl.linear.y, radar_ctrl.linear.z,
-                radar_ctrl.angular.x, radar_ctrl.angular.y, radar_ctrl.angular.z);
-    // }
-    // else
-    // {
-    //     LOGWARNING("[cmd_vel] Checksum error");
-    // }
+        // checksum = 0;
+
+        // for(int i = 0; i < 65; i++)
+        // {
+        //     checksum ^= low_contr[i];
+        // }
+        
+        // low_contr[65] = checksum;
+        // low_contr[66] = END_BYTE;
+
+        // HAL_UART_Transmit_DMA(&huart1, low_contr, sizeof(low_contr));
+
+        // LOGINFO("[cmd_vel] Parsed data: Linear x: %.6f, Linear y: %.6f, Linear z: %.6f, "
+        //         "Angular x: %.6f, Angular y: %.6f, Angular z: %.6f",
+        //         radar_ctrl.linear.x, radar_ctrl.linear.y, radar_ctrl.linear.z,
+        //         radar_ctrl.angular.x, radar_ctrl.angular.y, radar_ctrl.angular.z);
+    }
+    else
+    {
+        LOGWARNING("[cmd_vel] Checksum error");
+        testc++;
+    }
 }
 
 //
@@ -125,7 +133,7 @@ Radar_Data *CmdVelControlInit(UART_HandleTypeDef *cmd_vel_usart_handle)
 
     // 进行进程守护的注册，用于定时检查串口是否正常工作
     Daemon_Init_Config_s daemo_conf = {
-        .reload_count = 10, //100ms未接收到数据视为离线
+        .reload_count = 100, //1000ms未接收到数据视为离线
         .callback = CmdVelLostCallback,
         .owner_id = NULL,   //只有一个cmd_vel不需要id
     };

@@ -49,8 +49,8 @@ typedef struct
 	float pitch;
 	float yaw;
 
-	double yaw_vel;
-	double pitch_vel;
+	double yaw_vel;			// 角速度
+	double pitch_vel;		// 角速度
 // float yaw_acc;
 // float pitch_acc; 
 //

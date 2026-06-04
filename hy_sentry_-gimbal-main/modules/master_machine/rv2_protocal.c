@@ -78,23 +78,23 @@ void parse_rv2_receive_data(Vision_Recv_s *receive, uint8_t *rx_buf, uint16_t rx
         if(1) //暂时不校验crc
         {
             //(&rv2_recv_data,rx_buf,sizeof(rv2_recv_data));
-           memcpy(&rv2_recv_data_TongJi,rx_buf,sizeof(rv2_recv_data_TongJi));
+           memcpy(&rv2_recv_data_TongJi,rx_buf, sizeof(rv2_recv_data_TongJi));
            receive->yaw=rv2_recv_data_TongJi.yaw;
            receive->pitch=rv2_recv_data_TongJi.pitch;
            receive->yaw_vel=rv2_recv_data_TongJi.yaw_vel;
            receive->pitch_vel=rv2_recv_data_TongJi.pitch_vel;
            //根据接收到的数据设置状态和模式
-           if(rv2_recv_data_TongJi.target_state==1)
+           if(rv2_recv_data_TongJi.target_state == 1)
            {
                 receive->target_state = TRACKING;
                 receive->fire_mode = AUTO_AIM;
             }
-            else if(rv2_recv_data_TongJi.target_state==0)
+            else if(rv2_recv_data_TongJi.target_state == 0)
             {
                 receive->target_state = NO_TARGET;
                 receive->fire_mode = NO_FIRE;
             }
-            else if(rv2_recv_data_TongJi.target_state==2){
+            else if(rv2_recv_data_TongJi.target_state == 2){
                 receive->target_state = READY_TO_FIRE;
                 receive->fire_mode = AUTO_FIRE;
             }

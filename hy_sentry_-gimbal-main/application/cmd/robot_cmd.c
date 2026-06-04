@@ -113,12 +113,13 @@ static void CalcOffsetAngle()
     else
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
 #else // 小于180度
-    if (angle > YAW_ALIGN_ANGLE)
-        chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
-    else if (angle <= YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f)
-        chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
-    else
-        chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE + 360.0f;
+// TODO 暂时注释掉了
+    // if (angle > YAW_ALIGN_ANGLE)
+    //     chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
+    // else if (angle <= YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f)
+    //     chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
+    // else
+    //     chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE + 360.0f;
 #endif
 }
 
@@ -192,10 +193,22 @@ static void RemoteControlSet()
                 while(1) LOGERROR("[RemoteControlSet] default case: %d", rc_data[TEMP].rc.switch_right);
         }
     }
-    else if (rc_data[TEMP].rc.switch_left == RC_SW_MID)                 // 左侧开关状态[中],停止
+    else if (rc_data[TEMP].rc.switch_left == RC_SW_MID)                 // 左侧开关状态[中],其他模式
     {
-        gimbal_cmd_send.gimbal_mode = GIMBAL_ZERO_FORCE;
-        chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
+        switch (rc_data[TEMP].rc.switch_right)
+        {
+            case RC_SW_UP:                                          
+                gimbal_cmd_send.gimbal_mode = GIMBAL_VISION;       // 视觉模式
+                chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+                break;
+            case RC_SW_MID:                                         
+            case RC_SW_DOWN:
+                gimbal_cmd_send.gimbal_mode = GIMBAL_ZERO_FORCE;        // 停止
+                chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
+                break;
+            default:
+                while(1) LOGERROR("[RemoteControlSet] default case: %d", rc_data[TEMP].rc.switch_right);
+        }
     }
     else if (rc_data[TEMP].rc.switch_left == RC_SW_DOWN)                 // 左侧开关状态[下],遥控器控制小yaw
     {
@@ -285,33 +298,34 @@ static void VisionRadaControlSet()
     gimbal_cmd_send.yaw_vel = vision_recv_data_->yaw_vel;
     gimbal_cmd_send.pitch_vel = vision_recv_data_->pitch_vel;
 
-    if(referee_recv_data->GameRobotState.current_HP <= 0)
-        gimbal_cmd_send.gimbal_angle = -1;      // TODO 对状态机的代码进行规范化
-    else
-        gimbal_cmd_send.gimbal_angle = 1;
-    // 根据比赛状态关闭云台
-    if(referee_recv_data->GameState.game_progress == 0 || referee_recv_data->GameState.game_progress == 5|| referee_recv_data->GameState.game_progress == 1|| referee_recv_data->GameState.game_progress == 2|| referee_recv_data->GameState.game_progress == 3)
-        gimbal_cmd_send.gimbal_angle = -1;
+    // ! 比赛使用，暂时注释掉
+    // if(referee_recv_data->GameRobotState.current_HP <= 0)
+    //     gimbal_cmd_send.gimbal_angle = -1;      // TODO 对状态机的代码进行规范化
+    // else
+    //     gimbal_cmd_send.gimbal_angle = 1;
+    // // 根据比赛状态关闭云台
+    // if(referee_recv_data->GameState.game_progress == 0 || referee_recv_data->GameState.game_progress == 5|| referee_recv_data->GameState.game_progress == 1|| referee_recv_data->GameState.game_progress == 2|| referee_recv_data->GameState.game_progress == 3)
+    //     gimbal_cmd_send.gimbal_angle = -1;
 
-    if(vision_recv_data_->target_state == NO_TARGET)  
-    {
-        shoot_cmd_send.friction_mode = FRICTION_OFF;
-        shoot_cmd_send.shoot_mode = SHOOT_OFF;
-        shoot_cmd_send.load_mode = LOAD_STOP;    
-    }
-    else if(vision_recv_data_->target_state == TRACKING){
-        shoot_cmd_send.friction_mode = FRICTION_OFF;
-        shoot_cmd_send.shoot_mode = SHOOT_OFF;
-        shoot_cmd_send.load_mode = LOAD_STOP;
-    }
-    else if(vision_recv_data_->target_state == READY_TO_FIRE || switch_is_mid(rc_data[TEMP].rc.switch_right)) {
-        shoot_cmd_send.friction_mode = FRICTION_ON;
-        shoot_cmd_send.shoot_mode = SHOOT_ON;
-        shoot_cmd_send.load_mode = LOAD_BURSTFIRE; 
-        shoot_cmd_send.shoot_rate = 12;
-    }
-    shoot_cmd_send.friction_mode = FRICTION_ON;
-        shoot_cmd_send.shoot_mode = SHOOT_ON;
+    // if(vision_recv_data_->target_state == NO_TARGET)  
+    // {
+    //     shoot_cmd_send.friction_mode = FRICTION_OFF;
+    //     shoot_cmd_send.shoot_mode = SHOOT_OFF;
+    //     shoot_cmd_send.load_mode = LOAD_STOP;    
+    // }
+    // else if(vision_recv_data_->target_state == TRACKING){
+    //     shoot_cmd_send.friction_mode = FRICTION_OFF;
+    //     shoot_cmd_send.shoot_mode = SHOOT_OFF;
+    //     shoot_cmd_send.load_mode = LOAD_STOP;
+    // }
+    // else if(vision_recv_data_->target_state == READY_TO_FIRE || switch_is_mid(rc_data[TEMP].rc.switch_right)) {
+    //     shoot_cmd_send.friction_mode = FRICTION_ON;
+    //     shoot_cmd_send.shoot_mode = SHOOT_ON;
+    //     shoot_cmd_send.load_mode = LOAD_BURSTFIRE; 
+    //     shoot_cmd_send.shoot_rate = 12;
+    // }
+    // shoot_cmd_send.friction_mode = FRICTION_ON;
+    //     shoot_cmd_send.shoot_mode = SHOOT_ON;
 
     //比赛开始时启动
 //    if(referee_recv_data->GameState.game_progress == 0 || referee_recv_data->GameState.game_progress == 5|| referee_recv_data->GameState.game_progress == 1|| referee_recv_data->GameState.game_progress == 2|| referee_recv_data->GameState.game_progress == 3)
@@ -463,6 +477,8 @@ void RobotCMDTask()
     //     VisionRadaControlSet();
 #if (REMOTE_CONTROL_DEBUG == ON)         // 在CMake中定义REMOTE_CONTROL_DEBUG宏以启用遥控器调试模式,否则默认使用视觉导航模式
     RemoteControlSet();
+    if (gimbal_cmd_send.gimbal_mode == GIMBAL_VISION) // 视觉模式下仍然使用视觉导航模式设置控制
+        VisionRadaControlSet();
 #else
     VisionRadaControlSet();
 #endif // REMOTE_CONTROL_DEBUG == ON

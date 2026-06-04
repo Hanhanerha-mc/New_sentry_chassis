@@ -27,8 +27,8 @@ static trajectory_target_s *trajectory;
 static int time_tick = 0;
 
 //用于低通滤波的时间参数
-static float trajectory_pitch_LPF_RC=0.012;
-static float trajectory_yaw_LPF_RC=0.02;
+static float trajectory_pitch_LPF_RC = 0.012;
+static float trajectory_yaw_LPF_RC = 0.02;
 
 void VisionSetFlag(Enemy_Color_e enemy_color, Work_Mode_e work_mode, Bullet_Speed_e bullet_speed)
 {
@@ -96,7 +96,7 @@ static USARTInstance *vision_usart_instance;
  */
 static void DecodeVision()
 {
-    recv_data.offline = 0;
+    recv_data.offline = 0;      // ? 接收到数据说明不离线了
     DaemonReload(vision_daemon_instance); // 喂狗
 
     parse_rv2_receive_data(&recv_data,vision_usart_instance->recv_buff,VISION_RECV_SIZE);
@@ -121,10 +121,10 @@ Vision_Recv_s *VisionInit(UART_HandleTypeDef *_handle)
     };
     vision_daemon_instance = DaemonRegister(&daemon_conf);
 
-    rv2_recv=rv2_protocol_init();
-    trajectory=rv2_trajectory_init();
+    rv2_recv = rv2_protocol_init();             // 
+    trajectory = rv2_trajectory_init();         // 轨迹？
 
-    return &recv_data;
+    return &recv_data;          // 返回视觉接收数据的地址,供外部访问
 }
 uint8_t color_1=1;
 /**
@@ -135,7 +135,7 @@ uint8_t color_1=1;
  */
 void VisionSend()
 {
-    static uint32_t vision_send_count=0;
+    static uint32_t vision_send_count = 0;
     // buff和txlen必须为static,才能保证在函数退出后不被释放,使得DMA正确完成发送
     // 析构后的陷阱需要特别注意!
     static uint16_t flag_register;
@@ -144,7 +144,7 @@ void VisionSend()
 
     VisionSetAimXYZ(trajectory->aim_x,trajectory->aim_y,trajectory->aim_z);
 
-    send_data.enemy_color=color_1;
+    send_data.enemy_color = color_1;
 
     time_tick++;
     build_rv2_send_data(&send_data,send_buff,&tx_len);

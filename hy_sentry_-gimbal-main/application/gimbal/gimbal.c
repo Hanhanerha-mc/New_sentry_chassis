@@ -84,7 +84,7 @@ void GimbalInit()
             .other_angle_feedback_ptr = &Gimbal_IMU_data->YawTotalAngle,
             .other_speed_feedback_ptr = &Gimbal_IMU_data->Gyro[2],
             .angle_PID = {
-                .Kp = 9
+                .Kp = 7.5
                 , // Me:30
                 .Ki = 0, 
                 .Kd = 0.6,
@@ -296,6 +296,7 @@ static float temp_statue;
 static void GimbalSessionStart()
 {
 #if (REMOTE_CONTROL_DEBUG == ON)
+    // 此处是后面临时调试自瞄的代码
 
 #else
     static float pitch_i_term = 0.0f;
@@ -393,26 +394,6 @@ void GimbalTask()
     
     yaw_l_motor->stop_flag = MOTOR_ENALBED;
     // gimbal_IMU_Task();
-    // ? 这个临时状态的意义是什么
-    temp_statue = gimbal_cmd_recv.gimbal_mode;
-    if(gimbal_cmd_recv.gimbal_mode == GIMBAL_VISION)
-    {   
-        vision_gimbal_data.Vision_l_yaw_tar = gimbal_cmd_recv.yaw;
-        vision_gimbal_data.Vision_l_pitch_tar = gimbal_cmd_recv.pitch;
-        vision_gimbal_data.yaw_r_motor_angle = yaw_l_motor->measure.total_angle;
-        vision_gimbal_data.pitch_r_motor_angle = pitch_l_motor->measure.total_angle;
-
-        // vision_gimbal_data.Vision_r_yaw_tar = gimbal_cmd_recv.yaw;
-        // vision_gimbal_data.Vision_r_pitch_tar = gimbal_cmd_recv.pitch;
-        // vision_gimbal_data.yaw_r_motor_angle = yaw_r_motor->measure.total_angle;
-        // vision_gimbal_data.pitch_r_motor_angle = pitch_r_motor->measure.total_angle;
-
-        vision_gimbal_data.vision_statue = GIMBAL_VISION;
-    }
-    else
-    {
-        vision_gimbal_data.vision_statue = temp_statue;
-    }
 
     GimbalSessionStart();
 
@@ -460,8 +441,14 @@ void GimbalTask()
         DJIMotorChangeFeed(yaw_l_motor, ANGLE_LOOP, MOTOR_FEED);
         DJIMotorChangeFeed(pitch_l_motor, ANGLE_LOOP, MOTOR_FEED);
     
+        static float temp1 = 0, temp2 = 0;
+        DJIMotorSetRef(yaw_l_motor, gimbal_cmd_recv.yaw + temp1 + YAW_L_INIT_ANGLE); // yaw和pitch会在robot_cmd中处理好多圈和单圈
+        DJIMotorSetRef(pitch_l_motor, gimbal_cmd_recv.pitch + temp2);
         LIMIT_MIN_MAX(vision_l_yaw_tar, YAW_L_LIMIT_MIN , YAW_L_LIMIT_MAX );
         LIMIT_MIN_MAX(vision_l_pitch_tar, PITCH_L_LIMIT_MIN , PITCH_L_LIMIT_MAX);
+
+        temp1 = gimbal_cmd_recv.yaw;
+        temp2 = gimbal_cmd_recv.pitch;
 
         // DJIMotorSetRef(yaw_l_motor, vision_l_yaw_tar);
         // DJIMotorSetRef(pitch_l_motor, vision_l_pitch_tar);

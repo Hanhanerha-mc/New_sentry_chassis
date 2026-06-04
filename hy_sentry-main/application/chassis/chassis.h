@@ -34,15 +34,15 @@ enum Direction
 typedef struct
 {
     float chassis_motor_speed[4];
-    float chassis_steer_motor_angle[4];
+    float chassis_steer_motor_angle[4];     // 有什么用，steer看起是舵轮的角度
     float vx,vy,wz;
     float last_steer_target_angle[4];
-    float motor_set_speed[4];
+    float motor_set_speed[4];               // 有什么用
     float motor_set_steer[4];
-    float max_speed;
+    float max_speed;                        // 有什么用
     float gimbal_angle;
-    int TurnFlag[4];
-    enum  Direction direction[4];
+    int TurnFlag[4];                        // 舵轮的东西
+    enum  Direction direction[4];           // 有什么用
 } ChassisHandle_t;
 
 
